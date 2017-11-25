@@ -1,7 +1,7 @@
-      TTL Exercise Eleven Lookup Tables
+      TTL Space Game Assembly
 ;****************************************************************
-;Implements the lookup tables for Exercise 11.
-;Name:  Koen Komeya
+; Assembly code for Space Game
+;Name:  Koen Komeya 
 ;Date:  November 21, 2017
 ;Class:  CMPE-250
 ;Section:  Lab Section 4: Thursday 11 AM - 1 PM

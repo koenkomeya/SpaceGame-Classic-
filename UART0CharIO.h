@@ -5,11 +5,16 @@
 /// communicating with it via the OpenSDA port on the KL46. The internal
 /// implementation is done via using the UART module of the chip, which OpenSDA
 /// is already set up to.
-/// @author Koen Komeya <kxk2610@rit.edu>
-/// @date 11/24/2017 ~
+///@author Koen Komeya <kxk2610@rit.edu>
+///@date 11/24/2017 ~
+///----------------------------------------------------------------------------
+#ifndef UART0CHARIO_H
+#define UART0CHARIO_H
 
+/// Includes
 #include <stdint.h>
-
+///----------------------------------------------------------------------------
+/// @addtogroup Major Functions
 /**
  * Initializes this module. (See the assembly code for more info.)
  */
@@ -59,3 +64,5 @@ void PutNumUB (uint8_t num);
  * @param num number to write in hex
  */
 void PutNumHex (uint32_t num);
+
+#endif

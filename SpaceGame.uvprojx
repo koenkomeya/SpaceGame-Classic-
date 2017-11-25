@@ -410,6 +410,11 @@
               <FileType>5</FileType>
               <FilePath>.\UART0CharIO.h</FilePath>
             </File>
+            <File>
+              <FileName>SGRender.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\SGRender.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
