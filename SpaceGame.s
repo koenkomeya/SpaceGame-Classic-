@@ -1,6 +1,6 @@
       TTL Space Game Assembly
 ;****************************************************************
-; Assembly code for Space Game
+; Drivers for LCD and 
 ;Name:  Koen Komeya 
 ;Date:  November 21, 2017
 ;Class:  CMPE-250

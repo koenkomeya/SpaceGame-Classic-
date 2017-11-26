@@ -15,7 +15,7 @@
 ///             Imports
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>
+#include <string.h>
 
 #include "MKL46Z4.h"
 #include "SpaceGame.h"
@@ -24,11 +24,32 @@
 ///----------------------------------------------------------------------------
 /// @addtogroup Variables
 /// @{
-laser laserStorage[];
+
+///Storage for the E1's pointed to in #GameState.e1s
+Entity1 e1Storage[MAX_E1S];
 
 /// @}
 ///----------------------------------------------------------------------------
 /// @addtogroup Major Functions
+
+/// Initializes game structures
+void startGame(){
+	//TODO finish initialize structures
+	GameState *gs; //FIXME set to location of the GameState
+	//Initialize E1 container
+	gs->activeE1s = 0;
+	for (e1count_t i = 0; i < MAX_E1S; i++){
+		gs->e1s[i] = &e1Storage[i];
+	}
+	//Initialize Aliens
+	memset(&(gs->aliens), 0, sizeof(struct Alien_Mass));
+	//TODO actually initialize each alien in the grid.
+	//TODO set gs->aliens.etaAlienAttack to something.
+	//Initialize Miscellaneous
+	gs->lives = STARTING_LIVES;
+	gs->score = 0;
+}
+
 /// Entry point to the game
 int main(){
 	initRenderer();

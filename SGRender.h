@@ -17,7 +17,12 @@
 void initRenderer(); //FIXME implement with #include "UART0CharIO.h" in SGRenderTerminal
 
 /// Draw an alien at the specified position and direction
-void drawAlien(pos_t x, pos_t y);
+void drawAlien(pos_t x, pos_t y, pos_t xd, pos_t yd);
+
+//        A
+//Player <H>
+/// Draw player at the specified position
+void drawPlayer(pos_t x, pos_t y);
 
 void drawLevelScreen();
 
