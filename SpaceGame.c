@@ -32,6 +32,9 @@ Entity1 e1Storage[MAX_E1S];
 ///----------------------------------------------------------------------------
 /// @addtogroup Major Functions
 
+/// Assembly Subroutine to enable updates
+void EnableClock();
+
 /// Initializes game structures
 void startGame(){
 	//TODO finish initialize structures
@@ -39,7 +42,7 @@ void startGame(){
 	//Initialize E1 container
 	gs->activeE1s = 0;
 	for (e1count_t i = 0; i < MAX_E1S; i++){
-		gs->e1s[i] = &e1Storage[i];
+		gs->e1s[i] = &e1Storage[i]; 
 	}
 	//Initialize Aliens
 	memset(&(gs->aliens), 0, sizeof(struct Alien_Mass));

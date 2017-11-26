@@ -415,6 +415,16 @@
               <FileType>5</FileType>
               <FilePath>.\SGRender.h</FilePath>
             </File>
+            <File>
+              <FileName>TouchDriver.s</FileName>
+              <FileType>2</FileType>
+              <FilePath>.\TouchDriver.s</FilePath>
+            </File>
+            <File>
+              <FileName>TouchDriver.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\TouchDriver.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

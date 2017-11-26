@@ -1,13 +1,17 @@
       TTL UART0CharIO.s - Serial I/O Driver
 ;****************************************************************
-;This module implements a circular FIFO Queue that can be
-; interacted with via terminal input. This module uses interrupt
+;This module implements a driver to do serial I/O over the 
+; OpenSDA port via the UART0. This module uses interrupt
 ; service routines (ISRs) to reduce the likelihood that a
 ; character is lost while the program is doing something else.
 ;This module can be installed by including this file and setting
 ; the interrupt vector 28 to the UART0_ISR handler in this file
 ; for pure assembly projects. It automagically installs for 
 ; projects with the Device>Startup package installed.
+;The development of code presented in this module was 
+; significantly aided with tutorials and instruction given in
+; RIT's CMPE-250. I don't deserve any credit for most of the
+; work in this file.
 ;Name:  Koen Komeya
 ;Date:  November 2, 2017
 ;Class:  CMPE-250
@@ -26,6 +30,9 @@
 ; that this is for a mixed assembly-C program.
 ;Revision 5 (November 24, 2017): Modified spacing of 
 ; instructions to be more uniform.
+;Revision 6 (November 25, 2017): Fixed a problem with the header
+; comment and fixed a small potential bug with the interrupt 
+; service routine.
 ;---------------------------------------------------------------
 ;Adopted from Keil Template for KL46
 ;R. W. Melton
@@ -851,8 +858,8 @@ UA0ISR_IfRx LDRB    R0,[R3,#UART0_D_OFFSET] ; recieve a character
             LDR     R1,=RxQRecord           ; Try enqueue
             BL      Enqueue
 UA0ISR_EndIfRx                              ;}
-            CPSIE   I                       ;Unmask interrupts
 			MOV     LR,R12                  ;Restore Link Register
+            CPSIE   I                       ;Unmask interrupts
             BX      LR                      ;return (This statement and above one can be replaced w/ POP {PC})
             ENDP
 ;>>>>>   end subroutine code <<<<<
