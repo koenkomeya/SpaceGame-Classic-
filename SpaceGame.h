@@ -9,6 +9,7 @@
 #define SPACEGAME_H
 
 /// @addtogroup Defines
+/// @{
 
 /// Number of lives player should start with
 #define STARTING_LIVES 2
@@ -24,10 +25,17 @@
 /// @see GameState
 #define MAX_E1S 80
 
+/// @}
 ///----------------------------------------------------------------------------
 /// @addtogroup Typedefs
+/// @{
 /// Size of data required to store an alien's type
+/// @see AlienType
 typedef uint8_t alientype_t;
+
+/// Size of data required to store operation mode
+/// @see OperationMode
+typedef uint8_t opmode_t;
 
 /// Position type: Fixed point, low byte is fractional component
 typedef uint16_t pos_t;
@@ -40,18 +48,34 @@ typedef uint8_t aliencount_t;
 typedef uint8_t e1count_t;
 
 
+/// @}
 ///----------------------------------------------------------------------------
 /// @addtogroup Enums
+/// @{
 /// Defines types of aliens.
-/// Must fit in alientype_t
+/// Must fit in #alientype_t
 enum AlienType {
-	Grunt = 0,
-	Cruiser,
-	Battleship,
+	AT_Grunt = 0,
+	AT_Cruiser,
+	AT_Battleship,
 };
 
+/// Defines modes of operation.
+/// Must fit in #opmode_t
+/// When updated, update #updateOpState()
+enum OperationMode {
+	OM_TransitionState = 0,
+	OM_Game,
+	OM_GameOver,
+	OM_MainMenu,
+	OM_IntroSequence,
+	OM_Credits,
+};
+
+/// @}
 ///----------------------------------------------------------------------------
 /// @addtogroup Structs
+/// @{
 
 ///Data structure for weapons of both sides.
 ///Currently represents a laser.
@@ -83,6 +107,7 @@ typedef struct Alien_s{
 	///Y Velocity when attacking
 	pos_t yVel;
 	///Alien's type
+	///@see AlienType
 	alientype_t type;
 	/// Flags - In the form:
 	/// Bit 7: Currently attacking?
@@ -134,7 +159,22 @@ typedef struct GameState_s{
 	uint8_t lives;
 } GameState;
 
+/// @}
 ///----------------------------------------------------------------------------
 /// @addtogroup Variables
+/// @{
 
+/// The current mode of operation (Do not update directly)
+/// @see updateOpState
+extern opmode_t opMode;
+
+/// @}
+///----------------------------------------------------------------------------
+/// @addtogroup Functions
+/// @{
+
+///@brief Updates the current operating state. 
+void updateOpState(opmode_t);
+
+/// @}
 #endif

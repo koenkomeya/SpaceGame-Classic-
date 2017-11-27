@@ -13,8 +13,9 @@
 #include "SpaceGame.h"
 ///----------------------------------------------------------------------------
 /// @addtogroup Major Functions
+/// @{
 /// Initializes the renderer
-void initRenderer(); //FIXME implement with #include "UART0CharIO.h" in SGRenderTerminal
+void initRenderer(void); //FIXME implement with #include "UART0CharIO.h" in SGRenderTerminal
 
 /// Draw an alien at the specified position and direction
 void drawAlien(pos_t x, pos_t y, pos_t xd, pos_t yd);
@@ -24,16 +25,17 @@ void drawAlien(pos_t x, pos_t y, pos_t xd, pos_t yd);
 /// Draw player at the specified position
 void drawPlayer(pos_t x, pos_t y);
 
-void drawLevelScreen();
+void drawLevelScreen(void);
 
-void drawMainMenu();
+void drawMainMenu(void);
 
-void drawGameOverScreen();
+void drawGameOverScreen(void);
 
-void drawIntroduction1();
+void drawIntroduction1(void);
 
-void drawInstructions();
+void drawInstructions(void);
 	
-void clearScreen();
+void clearScreen(void);
 
+/// @}
 #endif 
