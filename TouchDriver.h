@@ -6,7 +6,7 @@
 /// [Final project for CMPE-250 (Section 4: Thursday 11 AM - 1 PM)]
 
 /// Enables the Touch Sensing Input module.
-void EnableTSI();
+void EnableTSI(void);
 
 /// Disables the Touch Sensing Input module.
-void DisableTSI();
+void DisableTSI(void);

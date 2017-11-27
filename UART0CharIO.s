@@ -228,7 +228,7 @@ SIM_SCGC4_ALT_OFFSET        EQU     (SIM_SCGC4_OFFSET - 0x1000)
 SIM_SCGC5_ALT_OFFSET        EQU     (SIM_SCGC5_OFFSET - 0x1000)
     
 ;Interrupt Options
-UART0_IRQ_PRIORITY          EQU     3
+UART0_IRQ_PRIORITY          EQU     1
 	
 ;Shift required to move the TDRE bit to the carry with an LSRS
 UA0ISR_UART0_S1_TDRE_SHIFT_2C   EQU     (UART0_S1_TDRE_SHIFT + 1)

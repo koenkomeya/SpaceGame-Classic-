@@ -20,6 +20,7 @@
 #include "MKL46Z4.h"
 #include "SpaceGame.h"
 #include "SGRender.h"
+#include "TouchDriver.h"
 
 ///----------------------------------------------------------------------------
 /// @addtogroup Variables
@@ -96,8 +97,22 @@ void renderGame(void);
 /// Updates the operation mode safely, updating #mode_tick and #mode_render in the process
 /// @see OperationMode
 void updateOpState(opmode_t newState){
+	__asm("CPSID I");
+	switch (opMode){ //Deinitialization Procedure
+		case OM_Game:
+			DisableTSI();
+		break;
+		case OM_GameOver:
+		break;
+		case OM_MainMenu:
+		break;
+		case OM_IntroSequence:
+		break;
+		case OM_Credits:
+		break;
+	}
 	opMode = newState;
-	switch (opMode){
+	switch (opMode){ //Initialization Procedure
 		case OM_TransitionState:
 			mode_tick = noop;
 		  mode_render = noop;
@@ -123,6 +138,7 @@ void updateOpState(opmode_t newState){
 		  mode_render = noop;
 		break;
 	}
+	__asm("CPSIE I");
 }
 
 

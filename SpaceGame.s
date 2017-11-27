@@ -131,20 +131,20 @@ EnableClock  PROC {R0-R14}
             MOVS    R2,#SIM_SCGC5_LPTMR_MASK
             ORRS    R1,R1,R2
             STR     R1,[R0,#0]
-            ;Set interrupt priority
-            LDR     R0,=LPTMR0_IPR
-            LDR     R1,[R0,#0]
-            MOVS    R2,#LPTMR0_PRI_MASK
-            BICS    R1,R1,R2
-            MOVS    R2,#LPTMR0_PRI_SET
-            ORRS    R1,R1,R2
-            STR     R1,[R0,#0]
-            ;Clear pending interrupts, unmask Interrupt
-            LDR     R0,=NVIC_ICPR
-            LDR     R1,=LPTMR0_IRQ_MASK
-            STR     R1,[R0,#0]
-            LDR     R0,=NVIC_ISER
-            STR     R1,[R0,#0]
+;           ;Set interrupt priority
+;           LDR     R0,=LPTMR0_IPR
+;           LDR     R1,[R0,#0]
+;           MOVS    R2,#LPTMR0_PRI_MASK
+;           BICS    R1,R1,R2
+;           MOVS    R2,#LPTMR0_PRI_SET
+;           ORRS    R1,R1,R2
+;           STR     R1,[R0,#0]
+;           ;Clear pending interrupts, unmask Interrupt
+;           LDR     R0,=NVIC_ICPR
+;           LDR     R1,=LPTMR0_IRQ_MASK
+;           STR     R1,[R0,#0]
+;           LDR     R0,=NVIC_ISER
+;           STR     R1,[R0,#0]
             ;config & Enable Module
             LDR     R0,=LPTMR0_BASE
             MOVS    R1,#LPTMR0_PSR_MCGIRC_PRE128
