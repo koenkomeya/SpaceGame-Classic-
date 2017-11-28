@@ -8,7 +8,7 @@
 ; pure assembly projects. It automagically installs for projects with
 ; the Device>Startup package installed.
 ;Name:  Koen Komeya 
-;Date:  November 21, 2017
+;Date:  November 26, 2017
 ;Class:  CMPE-250
 ;Section:  Lab Section 4: Thursday 11 AM - 1 PM
 ;----------------------------------------------------------------------
@@ -73,21 +73,28 @@ TSI0_GENCS_TSIIEN_MASK  EQU 0x00000040
 ;   1  -> 31  :OUTRGF : Clear out of range Flag
 ;   0  -> 28  : ESOR  : Use out of range interrupts
 ;  0000->27-24: MODE  : Use capacitive sensing mode
-;      ->23-21:REFCHRG:                                   FIXME
-;      ->20-19: DVOLT :
-;      ->18-16:EXTCHRG:
-;      ->15-13:  PS   :
+;  111 ->23-21:REFCHRG: 64 microAmp charge value                  
+;   01 ->20-19: DVOLT : deltaV = 0.7?                             FIXME (Contradictory dV values???)
+;  111 ->18-16:EXTCHRG: 64 microAmp charge value
+;  000 ->15-13:  PS   : Don't prescale output of reference oscillator
 ;      ->12- 8: NSCN  : Scan N Times
 ;   1  ->  7  : TSIEN : Enables TSI0
 ;   1  ->  6  :TSIIEN : Enable Interrupts
 ;   1  ->  5  : STPE  : Enable TSI0 in low power mode
 ;      ->  4  :  STM  : Use Hardware? for Trigger scan
-TSI0_EN_I_1     EQU 0x800000E0
+;   0  ->  1  : CURSW : Don't swap oscillators
+TSI0_EN_1     EQU 0x80EF00E0
 ;TSI0 Disable Mask
 ; TSI0_GENCS
 ;  VAL->BIT
 ;   0 -> 7 :TSIEN: Disables TSI0
 ; Use TSI0_GENCS_TSIEN_MASK
+
+;Settings
+;The high threshold (16-bits)
+TSI0_HI_THRESHOLD   EQU
+;The low threshold (16-bits)
+TSI0_LO_THRESHOLD   EQU 0
 
 
 ;**********************************************************************
@@ -127,10 +134,10 @@ EnableTSI   PROC {R0-R14}
             LDR     R0,=NVIC_ISER
             STR     R1,[R0,#0]
             ;Config Module
-            LDR     R0,=TSI0_BASE
+            LDR     R0,=TSI0_BASE     ;(Note to self: Internal reference capacitor is 1.0pF
             
             ;Enable Module
-            LDR     R1,=TSI0_EN_I_1
+            LDR     R1,=TSI0_EN_1
             STR     R1,[R0,#TSI0_GENCS_OFFSET]
             POP     {R0-R2}
             ENDP

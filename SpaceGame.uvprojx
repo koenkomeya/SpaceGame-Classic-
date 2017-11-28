@@ -425,6 +425,16 @@
               <FileType>5</FileType>
               <FilePath>.\TouchDriver.h</FilePath>
             </File>
+            <File>
+              <FileName>LCDDriver.s</FileName>
+              <FileType>2</FileType>
+              <FilePath>.\LCDDriver.s</FilePath>
+            </File>
+            <File>
+              <FileName>LCDDriver.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\LCDDriver.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

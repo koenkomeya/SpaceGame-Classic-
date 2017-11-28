@@ -1,13 +1,14 @@
-      TTL Low Power Timer Driver
+      TTL Low Power Timer Driver / Fast General Purpose IO Driver
 ;**********************************************************************
 ;Implements a driver for the LPTMR0 (Low Power Timer) to make it run 
 ; the function tick() in SpaceGame.c every sixtieth of a second.
+;Implements a driver for the fast general purpose I/O
 ;In order for this to function properly, the MCGIRCLK must be set up
 ; to use the fast internal reference clock (See KL46 Sub-Family 
 ; Reference Manual, Rev 3 page 386) and the fast internal reference
 ; clock should run at 4 MHz.
 ;Name:  Koen Komeya 
-;Date:  October 26, 2017; November 21, 2017
+;Date:  November 21, 2017
 ;Class:  CMPE-250
 ;Section:  Lab Section 4: Thursday 11 AM - 1 PM
 ;----------------------------------------------------------------------

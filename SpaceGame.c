@@ -46,8 +46,9 @@ void (*mode_render)();
 /// @addtogroup Major Functions
 /// @{
 
-/// Assembly Subroutine to enable updates
+/// Assembly Subroutine to enable periodic ticks
 void EnableClock(void);
+/// Assembly Subroutine to wait until the next timed tick.
 void WaitForTick(void);
 
 /// Does nothing; used as a dummy function.
