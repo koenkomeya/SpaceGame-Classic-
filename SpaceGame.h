@@ -208,6 +208,11 @@ extern Inputs inputs;
 ///@brief Updates the current operating state. 
 void updateOpState(opmode_t);
 
+/// Checks if a button is pressed or has been pressed since the last call.
+/// @pre Startup routine in main() has been completed.
+/// @returns if a button is pressed or has been pressed since the last call.
+bool CheckAndClearPress(void);
+
 
 /// @}
 #endif

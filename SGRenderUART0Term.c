@@ -15,8 +15,13 @@
 /// @addtogroup Defines
 /// @{
 
+/// Escape character 0x1B (ESC)
+#define ESCAPE_CHAR '\x1B'
+/// Escape character 0x1B (ESC) as string
+#define ESCAPE_STR "\x1B"
+
 /// ANSI CSI Sequence start
-#define ANSI_CSI "\e["
+#define ANSI_CSI ESCAPE_STR "["
 
 /// Terminal Width
 #define TERM_WIDTH 80
@@ -47,7 +52,7 @@
 /// @param xc the x position of the terminal.
 /// @param yc the y position of the terminal. (0 is top)
 static void setCursorPos(int xc, int yc){
-	PutChar('\e');
+	PutChar(ESCAPE_CHAR);
 	PutChar('[');
 	PutNumU(yc);
 	PutChar(';');
@@ -120,7 +125,7 @@ void drawPlayer(pos_t x, pos_t y){
 }
 
 /// @brief Draw an E1 at the specified position and direction
-void drawE1(int8_t e1flags1, pos_t x, pos_t y, spos_t xd, spos_t yd){
+void drawE1(int8_t e1flags1, pos_t x, pos_t y, pos_t xd, pos_t yd){
 	int xt = (x >> 8) + 1;
 	int yt = 40 - (y >> 8);
 	setCursorPos(xt, yt - 1);

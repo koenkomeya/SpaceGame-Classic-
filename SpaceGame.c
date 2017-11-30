@@ -59,11 +59,6 @@ void EnableButtonDriver(void);
 /// Assembly Subroutine to wait until the next timed tick.
 void WaitForTick(void);
 
-/// Checks if a button is pressed or has been pressed since the last call.
-/// @pre Startup routine in main() has been completed.
-/// @returns if a button is pressed or has been pressed since the last call.
-bool CheckAndClearPress(void);
-
 /// Does nothing; used as a dummy function.
 void noop(){}
 	

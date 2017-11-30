@@ -57,7 +57,7 @@ LCD_PRI_SET  EQU (LCD_PRI << LCD_PRI_POS)
 ;  VAL -> BIT
 ;   1  -> 31  :RVEN: Clear out of range Flag
 ;
-LCD_EN_1     EQU (LCD_GCR_RVEN_MASK :OR:
+LCD_EN_1     EQU (LCD_GCR_RVEN_MASK :OR: 1) ;FIXME!!!!
 
 ;LCD Disable Mask
 ; LCD_GENCS
@@ -106,13 +106,12 @@ EnableLCD   PROC {R0-R14}
 			
             
             ;Enable Module
-            LDR     R1,=
-            STR     R1,[R0,#LCD_GENCS_OFFSET]
+            ;LDR     R1,=
             POP     {R0-R2}
 			BX      LR
             ENDP
                 
-            EXPORT  DisableTSI    
+            EXPORT  DisableLCD   
 ;Subroutine DisableLCD
 ; Disables the LCD.
 ; Inputs

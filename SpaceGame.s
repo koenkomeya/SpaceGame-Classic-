@@ -123,13 +123,13 @@ LPTMR0_CMR_COMPARE625   EQU 625
 ; Priority of the PORTC (and PORTD). Set to 2, since there are more
 ;  important things to process, but we want responsive inputs and
 ;  there may be things that should have less priority than the PORTC.
-;PORTC_PORTD_PRI    EQU 2
+PORTC_PORTD_PRI    EQU 2
     
 ;PORTC Interrupt Priority Mask
 ; NVIC_IPRx
 ;  VAL->BIT
 ;   3 ->31-30:PORTC: Priority mask for PORTC (and PORTD).
-PORTC_PRI_MASK EQU (3 << PORTC_PORTD_PRI_POS)
+PORTC_PORTD_PRI_MASK EQU (3 << PORTC_PORTD_PRI_POS)
     
 ;PORTC Interrupt Priority Set
 ;See above
@@ -269,9 +269,9 @@ EnableButtonDriver PROC {R0-R14}
             ;Set interrupt priority
             LDR     R0,=PORTC_PORTD_IPR
             LDR     R1,[R0,#0]
-            MOVS    R2,#PORTC_PORTD_PRI_MASK
+            LDR     R2,=PORTC_PORTD_PRI_MASK
             BICS    R1,R1,R2
-            MOVS    R2,#PORTC_PORTD_PRI_SET
+            LDR     R2,=PORTC_PORTD_PRI_SET
             ORRS    R1,R1,R2
             STR     R1,[R0,#0]
             ;Clear pending interrupts, unmask Interrupt
