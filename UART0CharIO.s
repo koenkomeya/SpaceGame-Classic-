@@ -272,6 +272,7 @@ IOQBUF_SIZE EQU     80
             EXPORT  UART0_ISR
             EXPORT  UART0_IRQHandler
             EXPORT  Flush
+		    EXPORT  DIVU
 ;Subroutine Init_UART0_IRQ
 ; Initializes the UART0 for interrupt-based serial I/O with 8 data bits,
 ; no parity, and one stop bit at 9600 baud.

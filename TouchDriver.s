@@ -1,12 +1,7 @@
       TTL Touch Sensing Driver
 ;**********************************************************************
 ;This module implements a driver for the TSI0 module, which does touch
-; sensing detection. It receives updates from the module via
-; interrupts.
-;This module can be installed by including this file and setting the
-; interrupt vector 42 to the TSI0_IRQHandler handler in this file for
-; pure assembly projects. It automagically installs for projects with
-; the Device>Startup package installed.
+; sensing detection. 
 ;Name:  Koen Komeya 
 ;Date:  November 26, 2017
 ;Class:  CMPE-250
@@ -84,6 +79,8 @@ TSI0_TSHD_OFFSET    EQU 0x8
 TSI0_GENCS_OUTRGF_MASK  EQU 0x80000000
 TSI0_GENCS_TSIEN_MASK   EQU 0x00000080
 TSI0_GENCS_TSIIEN_MASK  EQU 0x00000040
+TSI0_GENCS_EOSF_MASK    EQU 0x00000004
+TSI0_GENCS_EOSF_SHIFTPLUS1  EQU (2+1)
     
 TSI0_DATA_TSICH_SHIFT   EQU 28
 TSI0_DATA_SWTS_MASK     EQU 0x00400000
@@ -101,11 +98,11 @@ TSI0_DATA_TSICNT_MASK   EQU 0x0000FFFF
 ;  000 ->15-13:  PS   : Don't prescale output of reference oscillator
 ;  0011->12- 8: NSCN  : Scan 4 Times
 ;   1  ->  7  : TSIEN : Enables TSI0
-;   1  ->  6  :TSIIEN : Enable Interrupts
+;   0  ->  6  :TSIIEN : Disable Interrupts
 ;   1  ->  5  : STPE  : Enable TSI0 in low power mode
 ;   0  ->  4  :  STM  : Use Software for Trigger scan
 ;   0  ->  1  : CURSW : Don't swap oscillators
-TSI0_EN_1     EQU 0x80AF03E0
+TSI0_EN_1     EQU 0x80AF03A0
     
     
 ;TSI0 Data Config
@@ -132,9 +129,14 @@ TSI0_DATA_1_SCAN   EQU (TSI0_DATA_1 :OR: TSI0_DATA_SWTS_MASK)
 
 ;Settings
 ;The high threshold (16-bits)
-TSI0_HI_THRESHOLD   EQU 234                                       ;FIXME Calibrate
+;TSI0_HI_THRESHOLD   EQU 234                                    ; Calibrate
 ;The low threshold (16-bits)
-TSI0_LO_THRESHOLD   EQU 0
+;TSI0_LO_THRESHOLD   EQU 0
+
+;The high side of the capacitance when being pressed (16-bits) (Left Side)
+TSI0_HI_THRESHOLD   EQU 235                                     ;FIXME Calibrate
+;The low side of the capacitance when being pressed (16-bits) (Right Side)
+TSI0_LO_THRESHOLD   EQU 234
 
 
 ;**********************************************************************
@@ -151,7 +153,7 @@ TSI0_LO_THRESHOLD   EQU 0
 ; Outputs
 ;  NONE
 ; Modified: APSR
-EnableTSI   PROC {R0-R14}
+EnableTSI   PROC    {R0-R14}
             PUSH    {R0-R2}
             ;Enable system clock to the PORTB.
             LDR     R0,=SIM_SCGC5
@@ -175,20 +177,20 @@ EnableTSI   PROC {R0-R14}
             MOVS    R2,#SIM_SCGC5_TSI_MASK
             ORRS    R1,R1,R2
             STR     R1,[R0,#0]
-            ;Set interrupt priority
-            LDR     R0,=TSI0_IPR
-            LDR     R1,[R0,#0]
-            LDR     R2,=TSI0_PRI_MASK
-            BICS    R1,R1,R2
-            LDR     R2,=TSI0_PRI_SET
-            ORRS    R1,R1,R2
-            STR     R1,[R0,#0]
-            ;Clear pending interrupts, unmask Interrupt
-            LDR     R0,=NVIC_ICPR
-            LDR     R1,=TSI0_IRQ_MASK
-            STR     R1,[R0,#0]
-            LDR     R0,=NVIC_ISER
-            STR     R1,[R0,#0]
+;           ;Set interrupt priority
+;           LDR     R0,=TSI0_IPR
+;           LDR     R1,[R0,#0]
+;           LDR     R2,=TSI0_PRI_MASK
+;           BICS    R1,R1,R2
+;           LDR     R2,=TSI0_PRI_SET
+;           ORRS    R1,R1,R2
+;           STR     R1,[R0,#0]
+;           ;Clear pending interrupts, unmask Interrupt
+;           LDR     R0,=NVIC_ICPR
+;           LDR     R1,=TSI0_IRQ_MASK
+;           STR     R1,[R0,#0]
+;           LDR     R0,=NVIC_ISER
+;           STR     R1,[R0,#0]
             ;Config Module
             LDR     R0,=TSI0_BASE     ;(Note to self: Internal reference capacitor is 1.0pF)
             ;LDR     R1,=TSI0_DATA_1  ; We don't need to do this yet because it is set when scan starts
@@ -216,10 +218,10 @@ DisableTSI  PROC {R0-R14}
             MOVS    R2,#TSI0_GENCS_TSIEN_MASK
             BICS    R1,R1,R2
             STR     R1,[R0,#TSI0_GENCS_OFFSET]
-            ;Disable Interrupts
-            LDR     R0,=NVIC_ICER
-            LDR     R1,=TSI0_IRQ_MASK
-            STR     R1,[R0,#0]
+;           ;Disable Interrupts
+;           LDR     R0,=NVIC_ICER
+;           LDR     R1,=TSI0_IRQ_MASK
+;           STR     R1,[R0,#0]
             ;Disable Clock gating
             LDR     R0,=SIM_SCGC5
             LDR     R1,[R0,#0]
@@ -249,31 +251,59 @@ ScanTSI     PROC    {R0-R14}
 			BX      LR
 	        ENDP
 				
+		    IMPORT  DIVU
             EXPORT  ReadTSIScaled 
 ;Subroutine ReadTSIScaled
-; Determines where the TSI0 is pressed and scales the value to -127~127.
+; Determines where the TSI0 is pressed and scales the value to -128~127.
 ; Returns 0 if the TSI is currently not being pressed.
 ; ScanTSI must be called before this is called.
 ; Inputs
 ;  NONE
 ; Outputs
-;  NONE
-; Modified: APSR
-ReadTSIScaled PROC {R0-R14}
-            PUSH    {R0-R2}
-	        ;Determine the TSI0_DATA_TSICNT_MASK
+;  R0 - The scaled TSI press location.
+; Modified: R0, APSR
+ReadTSIScaled PROC {R1-R14}
+            PUSH    {R1-R2,LR}
             LDR     R0,=TSI0_BASE
-            POP     {R0-R2}
-			BX      LR
+			;Wait for scan to complete
+RTSScanWait	LDR     R1,[R0,#TSI0_GENCS_OFFSET]
+			LSRS    R2,R1,#TSI0_GENCS_EOSF_SHIFTPLUS1 ;Shift to carry
+			BCC     RTSScanWait
+			;Clear scan complete
+			STR     R1,[R0,#TSI0_GENCS_OFFSET]
+	        ;Determine the value 
+			LDR     R0,[R0,#TSI0_DATA_OFFSET]
+			LDR     R1,=TSI0_DATA_TSICNT_MASK
+			ANDS    R1,R0,R1
+			LDR     R2,=TSI0_LO_THRESHOLD
+			SUBS    R1,R1,R2
+			BLT     RTSCapTooSmall           ;If capacitance is too small, branch
+		    LDR     R0,=(TSI0_HI_THRESHOLD - TSI0_LO_THRESHOLD)
+RTS_IfGrThres ;If the raw value is greater than the high threshold.
+            CMP     R1,R0
+			BGE     RTS_WhenGrThres
+RTS_EndIfGrThres	
+			LSLS    R1,R1,#8                 ;raw  *= 256
+			BL      DIVU                     ;raw2 /= threshold range
+			SUBS    R0,R0,#127               ;Approximate transform into a signed value.
+			RSBS    R0,R0,#0                 ;Negation of R0 to -128~127
+            POP     {R1-R2,PC}
+RTSCapTooSmall ;When the capacitance is too small, return 0
+            MOVS    R0,#0
+            POP     {R1-R2,PC}
+RTS_WhenGrThres
+            MOVS    R0,#127
+			MVNS    R0,R0                    ;R0 = -128.
+            POP     {R1-R2,PC}
 	        ENDP
 	
 ;Interrupt Service Routine TSI0_IRQHandler
 ; Handles interrupts for the TSI0.
 ; Modified: R0-R3, APSR (NONE if via Interrupt)
-TSI0_IRQHandler PROC {R4-R11}
-            
-            BX      LR                      ;return (This statement and above one can be replaced w/ POP {PC})
-            ENDP
+;TSI0_IRQHandler PROC {R4-R11}
+;	        ;TODO remove if this turns out to be unneeded.
+;           BX      LR                 
+;           ENDP
                 
             ALIGN
 ;**********************************************************************

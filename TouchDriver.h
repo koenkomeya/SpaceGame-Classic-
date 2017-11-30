@@ -15,7 +15,7 @@ void DisableTSI(void);
 /// Recommended to be called at the end of a tick.
 void ScanTSI(void);
 
-/// Reads the TSI and scales the value -127 (held on the left) to 127 (held to the right).
+/// Reads the TSI and scales the value -128 (held on the left) to 127 (held to the right).
 /// If it is not currently being pressed, returns 0.
 /// ScanTSI must be called before this is called.
 int ReadTSIScaled(void);

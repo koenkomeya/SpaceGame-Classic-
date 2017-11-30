@@ -178,7 +178,7 @@ typedef union StateUnion_s{
 ///Data structure for on-chip inputs that are used in this program.
 typedef struct Inputs_s{
 	/// The current state of the slider.
-  int slider = 0;
+  int8_t slider;
   /// The current state of the button.
   bool buttonPressed;
 } Inputs;

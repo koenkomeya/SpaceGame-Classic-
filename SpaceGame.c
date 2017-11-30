@@ -176,13 +176,13 @@ void updateOpState(opmode_t newState){
 
 /// Does any end of tick preparation to quickly read inputs the next ticks,
 void prepReadInputs(void){
-	
+	ScanTSI();
 }
 
 /// Reads all input sources for this game.
 void readInputs(void){
 	inputs.buttonPressed = CheckAndClearPress();
-	inputs.slider 
+	inputs.slider = ReadTSIScaled();
 }
 
 void tickAliens(void);
