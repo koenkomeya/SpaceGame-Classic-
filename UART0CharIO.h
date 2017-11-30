@@ -15,6 +15,7 @@
 #include <stdint.h>
 ///----------------------------------------------------------------------------
 /// @addtogroup Major Functions
+/// @{
 /**
  * Initializes this module. (See the assembly code for more info.)
  */
@@ -65,4 +66,18 @@ void PutNumUB (uint8_t num);
  */
 void PutNumHex (uint32_t num);
 
+/// @}
+///----------------------------------------------------------------------------
+/// @addtogroup Functional Macros
+/// @{
+/// #define PUTSTRLIT(sa)
+/// Prints out a string array or string literal.
+/// @param sa string array to print; MUST BE A CHAR ARRAY OR STRING LITERAL.
+#define PUTSTRLIT(sa) PutStringSB(sa, sizeof(sa))
+/// #define GETSTRLIN(sa)
+/// Reads a line into buffer.
+/// @param sa char buffer to write to; MUST BE A CHAR BUFFER.
+#define GETSTRLIN(sa) GetStringSB(sa, sizeof(sa))
+
+/// @}
 #endif

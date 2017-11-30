@@ -50,23 +50,14 @@ LCD_PRI_SET  EQU (LCD_PRI << LCD_PRI_POS)
 ;   1 -> 26 :LCD: Mask for the NVIC's IXXR registers for LCD.
 ; Using LCD_IRQ_MASK
 
-;LCD Base and Offsets
-;From KL46 Sub-Family Reference Manual, Rev 3 page 843
-LCD_BASE           EQU 0x40053000
-LCD_GCR_OFFSET     EQU 0x0
-
 ;LCD Fields
-;From KL46 Sub-Family Reference Manual, Rev 3 page 844-849
-
-LCD_GCR_RVEN_MASK      EQU 0x80000000
-LCD_GCR_RVTRIM_MASK    EQU 0x0F000000
-LCD_GCR_LCDEN_MASK     EQU 0x00000080
 
 ;LCD Enable Mask
 ; NVIC_IXXR
 ;  VAL -> BIT
 ;   1  -> 31  :RVEN: Clear out of range Flag
-LCD_EN_1     EQU 
+;
+LCD_EN_1     EQU (LCD_GCR_RVEN_MASK :OR:
 
 ;LCD Disable Mask
 ; LCD_GENCS
@@ -115,9 +106,10 @@ EnableLCD   PROC {R0-R14}
 			
             
             ;Enable Module
-            LDR     R1
+            LDR     R1,=
             STR     R1,[R0,#LCD_GENCS_OFFSET]
             POP     {R0-R2}
+			BX      LR
             ENDP
                 
             EXPORT  DisableTSI    
@@ -143,6 +135,7 @@ DisableLCD  PROC {R0-R14}
             BICS    R1,R1,R2
             STR     R1,[R0,#0]
             POP     {R0-R2}
+			BX      LR
             ENDP
 
                 

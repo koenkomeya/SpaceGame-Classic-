@@ -10,3 +10,12 @@ void EnableTSI(void);
 
 /// Disables the Touch Sensing Input module.
 void DisableTSI(void);
+
+/// ScanTSI causes the TSI to do a scan on the touch sensor.
+/// Recommended to be called at the end of a tick.
+void ScanTSI(void);
+
+/// Reads the TSI and scales the value -127 (held on the left) to 127 (held to the right).
+/// If it is not currently being pressed, returns 0.
+/// ScanTSI must be called before this is called.
+int ReadTSIScaled(void);

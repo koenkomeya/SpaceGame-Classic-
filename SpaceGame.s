@@ -129,11 +129,11 @@ LPTMR0_CMR_COMPARE625   EQU 625
 ; NVIC_IPRx
 ;  VAL->BIT
 ;   3 ->31-30:PORTC: Priority mask for PORTC (and PORTD).
-;PORTC_PRI_MASK EQU (3 << PORTC_PORTD_PRI_POS)
+PORTC_PRI_MASK EQU (3 << PORTC_PORTD_PRI_POS)
     
 ;PORTC Interrupt Priority Set
 ;See above
-;PORTC_PORTD_PRI_SET  EQU (PORTC_PORTD_PRI << PORTC_PORTD_PRI_POS)
+PORTC_PORTD_PRI_SET  EQU (PORTC_PORTD_PRI << PORTC_PORTD_PRI_POS)
 
 ;PORTC Configuration
 ; Configures the pushbutton ports so that the port is low when the
@@ -148,10 +148,10 @@ LPTMR0_CMR_COMPARE625   EQU 625
 ;   1 ->  2  :SRE : Slow Slew Rate
 ;   1 ->  1  : PE : Enable pull-xx resistor
 ;   1 ->  0  : PS : Use an internal pull-up resistor
-PORTC_PUSHBUTTON_CFG    EQU (PORT_PCR_ISF_MASK :OR:
-                             (2_1010 << PORT_PCR_IRCQ_SHIFT) :OR:
-                             PORT_PCR_MUX_SELECT_1_MASK :OR:
-                             PORT_PCR_SRE_MASK :OR: PORT_PCR_PE_MASK :OR:
+PORTC_PUSHBUTTON_CFG    EQU (PORT_PCR_ISF_MASK :OR: \
+                             (2_1010 << PORT_PCR_IRCQ_SHIFT) :OR: \
+                             PORT_PCR_MUX_SELECT_1_MASK :OR: \
+                             PORT_PCR_SRE_MASK :OR: PORT_PCR_PE_MASK :OR: \
                              PORT_PCR_PS_MASK)
 
 ; Mask for Pins PTC3=SW1 (RightButton) and PTC12=SW3(LeftButton)
@@ -208,6 +208,7 @@ EnableClock  PROC {R0-R14}
             STR     R1,[R0,#LPTMR0_CSR_OFFSET]
             ;Set Tick wait to 1.
             POP     {R0-R2}
+			BX      LR
             ENDP
 
 ;Subroutine WaitForTick
@@ -228,6 +229,7 @@ W4T_PollLoop;Wait for TCF to be set. (That signals a tick interval has passed)
             MOVS    R1,#LPTMR0_CSR_P_TC_EN_CLEARTCF
             STR     R1,[R0,#LPTMR0_CSR_OFFSET]
             POP     {R0-R1}
+			BX      LR
             ENDP
                 
 ;Interrupt Service Routine LPTMR_IRQHandler
@@ -261,7 +263,7 @@ EnableButtonDriver PROC {R0-R14}
             ;Enable system clock to the PORTC.
             LDR     R0,=SIM_SCGC5
             LDR     R1,[R0,#0]
-            MOVS    R2,#SIM_SCGC5_PORTC_MASK
+            LDR     R2,=SIM_SCGC5_PORTC_MASK
             ORRS    R1,R1,R2
             STR     R1,[R0,#0]
             ;Set interrupt priority
@@ -284,9 +286,6 @@ EnableButtonDriver PROC {R0-R14}
             STR     R1,[R0,#PORTC_PCR3_OFFSET]
             STR     R1,[R0,#PORTC_PCR12_OFFSET]
             ;PTC3 and PTC12 are inputs in FGPIO by default
-            LDR     R0,=FGPIOC_BASE
-            LDRH    R1,=PTC3_PTC12_MASK
-            STR     R1,[R0,#GPIO_PDDR_OFFSET]
             POP     {R0-R2}
             BX      LR
             ENDP
@@ -312,7 +311,7 @@ CheckAndClearPress PROC {R1-R14}
             CPSIE   I   ;(Unmask interrupts)
             ;Check if button is still being pressed.
             LDR     R1,=FGPIOC_BASE
-            LDRH    R2,=PTC3_PTC12_MASK
+            LDR     R2,=PTC3_PTC12_MASK
             LDR     R1,[R1,#GPIO_PDIR_OFFSET]
             ANDS    R1,R1,R2
             ;Sum together the two possibilities and normalize to 0 or 1.
@@ -322,7 +321,7 @@ CheckAndClearPress PROC {R1-R14}
             RSBS    R0,R0,#0
             POP     {R1-R2}
             BX      LR
-            ALIGN
+            ENDP
                 
 ;Interrupt Service Routine PORTC_PORTD_IRQHandler
 ; Handles interrupts for the PORTC pins (technically also handles 
@@ -331,7 +330,7 @@ CheckAndClearPress PROC {R1-R14}
 PORTC_PORTD_IRQHandler PROC    {R3-R14}
             ;Check for pushbutton interrupts.
             LDR     R0,=PORTC_ISFR
-            LDRH    R1,=PTC3_PTC12_MASK
+            LDR     R1,=PTC3_PTC12_MASK
             LDR     R2,[R0,#0]
             ANDS    R2,R2,R1
             ;Clear interrupt flags for pushbuttons
@@ -344,6 +343,8 @@ PORTC_PORTD_IRQHandler PROC    {R3-R14}
             STRB    R2,[R1,#0]
             BX      LR                              ;Return
             ENDP
+                
+            ALIGN
 ;**********************************************************************
 ;Constants
             AREA    MyConst,DATA,READONLY

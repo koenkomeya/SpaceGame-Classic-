@@ -6,6 +6,11 @@
 /// @date 11/25/2017 ~
 /// [Final project for CMPE-250 (Section 4: Thursday 11 AM - 1 PM)]
 ///----------------------------------------------------------------------------
+/// E X P L A N A T I O N
+///- - - - - - - - - - - -
+///The screen starts at (0,40) in the upper left hand corner and goes to 
+/// (80,0) in the lower right hand corner.
+///----------------------------------------------------------------------------
 #ifndef SGRENDER_H
 #define SGRENDER_H
 
@@ -14,18 +19,19 @@
 ///----------------------------------------------------------------------------
 /// @addtogroup Major Functions
 /// @{
-/// Initializes the renderer
-void initRenderer(void); //FIXME implement with #include "UART0CharIO.h" in SGRenderTerminal
+/// @brief Initializes the renderer.
+void initRenderer(void);
 
-/// Draw an alien at the specified position and direction
-void drawAlien(pos_t x, pos_t y, pos_t xd, pos_t yd);
+/// @brief Draw an alien at the specified position and direction
+void drawAlien(alientype_t t, pos_t x, pos_t y, pos_t xd, pos_t yd);
 
-//        A
-//Player <H>
-/// Draw player at the specified position
+/// @brief Draw player at the specified position
 void drawPlayer(pos_t x, pos_t y);
 
-void drawLevelScreen(void);
+/// @brief Draw an E1 at the specified position and direction
+void drawE1(int8_t e1flags1, pos_t x, pos_t y, pos_t xd, pos_t yd);
+
+void drawLevelScreen(int level);
 
 void drawMainMenu(void);
 

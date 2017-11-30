@@ -8,6 +8,11 @@
 #ifndef SPACEGAME_H
 #define SPACEGAME_H
 
+///             Includes
+#include <stdbool.h>
+#include <stdint.h>
+
+///----------------------------------------------------------------------------
 /// @addtogroup Defines
 /// @{
 
@@ -38,7 +43,7 @@ typedef uint8_t alientype_t;
 typedef uint8_t opmode_t;
 
 /// Position type: Fixed point, low byte is fractional component
-typedef uint16_t pos_t;
+typedef int16_t pos_t;
 
 /// Counter type for Aliens. Adjust when #ALIEN_ROWS and #ALIEN_COLS are 
 ///  changed.
@@ -54,6 +59,7 @@ typedef uint8_t e1count_t;
 /// @{
 /// Defines types of aliens.
 /// Must fit in #alientype_t
+/// If an alien type is added, #drawAlien() must be modified.
 enum AlienType {
 	AT_Grunt = 0,
 	AT_Cruiser,
@@ -153,6 +159,7 @@ typedef struct GameState_s{
 	/// point to active E1's and the remainder point to inactive E1's.
 	Entity1 *e1s[MAX_E1S];
 	/// FIXME structure for Player
+	pos_t ply_pos_x, ply_pos_y;
 	///Player's score
 	uint16_t score;
 	///Amount of lives player has
@@ -168,6 +175,14 @@ typedef union StateUnion_s{
 	GameState game;
 } StateUnion;
 
+///Data structure for on-chip inputs that are used in this program.
+typedef struct Inputs_s{
+	/// The current state of the slider.
+  int slider = 0;
+  /// The current state of the button.
+  bool buttonPressed;
+} Inputs;
+
 /// @}
 ///----------------------------------------------------------------------------
 /// @addtogroup Variables
@@ -181,6 +196,10 @@ extern opmode_t opMode;
 /// @see StateUnion
 extern StateUnion state;
 
+/// Contains the current state of the inputs.
+/// @see Inputs
+extern Inputs inputs;
+
 /// @}
 ///----------------------------------------------------------------------------
 /// @addtogroup Functions
@@ -188,6 +207,7 @@ extern StateUnion state;
 
 ///@brief Updates the current operating state. 
 void updateOpState(opmode_t);
+
 
 /// @}
 #endif

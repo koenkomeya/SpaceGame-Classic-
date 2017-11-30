@@ -13,8 +13,6 @@
 /// @}
 ///----------------------------------------------------------------------------
 ///             Imports
-#include <stdbool.h>
-#include <stdint.h>
 #include <string.h>
 
 #include "MKL46Z4.h"
@@ -36,9 +34,16 @@ void (*mode_tick)();
 /// The current mode's delegate for rendering
 void (*mode_render)();
 
+/// The current mode's delegate for any after-tick processes
+void (*mode_posttick)();
+
 /// Contains the data for the current state.
 /// @see StateUnion
 StateUnion state;
+
+/// Contains the current state of the inputs.
+/// @see Inputs
+Inputs inputs;
 
 /// @}
 ///----------------------------------------------------------------------------
@@ -54,13 +59,18 @@ void EnableButtonDriver(void);
 /// Assembly Subroutine to wait until the next timed tick.
 void WaitForTick(void);
 
+/// Checks if a button is pressed or has been pressed since the last call.
+/// @pre Startup routine in main() has been completed.
+/// @returns if a button is pressed or has been pressed since the last call.
+bool CheckAndClearPress(void);
+
 /// Does nothing; used as a dummy function.
 void noop(){}
 	
 /// Initializes game structures
 void startGame(){
 	//TODO finish initialize structures
-	GameState *gs = &(state.game); //FIXME set to location of the GameState
+	GameState *gs = &(state.game);
 	//Initialize E1 container
 	gs->activeE1s = 0;
 	for (e1count_t i = 0; i < MAX_E1S; i++){
@@ -80,9 +90,10 @@ void startGame(){
 void tick(){
 	mode_tick();
 	mode_render();
+	mode_posttick();
 }
 
-
+void prepReadInputs(void);
 /// Entry point to the game
 int main(){
 	//Initialize variables/state.
@@ -90,8 +101,10 @@ int main(){
 	                             //doesn't get called for deinitialization.
 	updateOpState(OM_TransitionState);
 	//Enable Peripherals
-	initRenderer();
 	EnableButtonDriver();
+	EnableTSI();
+	prepReadInputs();
+	initRenderer();
 	EnableClock();
 	//TODO initialize GameState
 	//Do tick loop: Tick every 0.02s interval
@@ -103,13 +116,13 @@ int main(){
 
 void tickGame(void);
 void renderGame(void);
+void postGame(void);
 /// Updates the operation mode safely, updating #mode_tick and #mode_render in the process
 /// @see OperationMode
 void updateOpState(opmode_t newState){
 	__asm("CPSID I");
 	switch (opMode){ //Deinitialization Procedure
 		case OM_Game:
-			DisableTSI();
 		break;
 		case OM_GameOver:
 		break;
@@ -125,26 +138,32 @@ void updateOpState(opmode_t newState){
 		case OM_TransitionState:
 			mode_tick = noop;
 		  mode_render = noop;
+			mode_posttick = noop;
 		break;
 		case OM_Game:
 			mode_tick = tickGame;
 		  mode_render = renderGame;
+			mode_posttick = postGame;
 		break;
 		case OM_GameOver:
 			mode_tick = noop;
 		  mode_render = noop;
+			mode_posttick = noop;
 		break;
 		case OM_MainMenu:
 			mode_tick = noop;
 		  mode_render = noop;
+			mode_posttick = noop;
 		break;
 		case OM_IntroSequence:
 			mode_tick = noop;
 		  mode_render = noop;
+			mode_posttick = noop;
 		break;
 		case OM_Credits:
 			mode_tick = noop;
 		  mode_render = noop;
+			mode_posttick = noop;
 		break;
 	}
 	__asm("CPSIE I");
@@ -155,15 +174,48 @@ void updateOpState(opmode_t newState){
 /// @addtogroup Minor Functions
 /// @{
 
+/// Does any end of tick preparation to quickly read inputs the next ticks,
+void prepReadInputs(void){
+	
+}
+
+/// Reads all input sources for this game.
+void readInputs(void){
+	inputs.buttonPressed = CheckAndClearPress();
+	inputs.slider 
+}
+
 void tickAliens(void);
 /// Ticks everything in a game session.
 void tickGame(){
+	readInputs();
 	
 }
 
 /// Renders everything in a game session.
 void renderGame(){
-	
+	clearScreen();
+	GameState *gs = &(state.game);
+	//Draw Player
+	drawPlayer(gs->ply_pos_x, gs->ply_pos_y);
+	//Render each E1.
+	for (e1count_t i = 0; i < MAX_E1S; i++){
+		Entity1 *e1 = gs->e1s[i];
+		drawE1(e1->flags1, e1->xPos, e1->yPos, e1->xVel, e1->yVel);
+	}
+	//Render each alien.
+	for (aliencount_t r = 0; r < ALIEN_ROWS; r++){
+		int rc = r * ALIEN_COLS;
+		for (aliencount_t c = 0; c < ALIEN_COLS; c++){
+			Alien *a = &(gs->aliens.alienArray[rc+c]);
+			drawAlien(a->type, a->xPos, a->yPos, a->xVel, a->yVel);
+		}
+	}
+}
+
+/// Does post-tick processes
+void postGame(void){
+	prepReadInputs();
 }
 
 

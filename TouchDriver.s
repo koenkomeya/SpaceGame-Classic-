@@ -53,6 +53,25 @@ TSI0_PRI_SET  EQU (TSI0_PRI << TSI0_PRI_POS)
 ;   1 -> 26 :TSI0: Mask for the NVIC's IXXR registers for TSI0.
 ; Using TSI0_IRQ_MASK
 
+;PORTB Hold Low Configuration
+; Partially configures the other electrode of the touch input to hold low.
+; PORTB_PCRn
+;  VAL-> BIT
+;   1 -> 24  :ISF : Clear Interrupt Status Flag
+; XXXX->19-16:IRQC: PORTB doesn't support interrupts.
+;  001->10-8 :MUX : Connect port to GPIO
+;   X ->  6  :DSE : Port PTB17 does not support high drive
+;   X ->  4  :PFE : (Read-only for these pins)
+;   1 ->  2  :SRE : Slow Slew Rate (this will be held 0)
+;   0 ->  1  : PE : Disable pull-xx resistor.
+;   X ->  0  : PS : PE is disabled
+PORTB_LOW_OUT_CONFIG    EQU (PORT_PCR_ISF_MASK :OR: \
+                         PORT_PCR_MUX_SELECT_1_MASK :OR: \
+                         PORT_PCR_SRE_MASK)
+                         
+;(F)GPIO Mask for Pins PTB17
+PTB17_MASK    EQU (1 << 17)
+
 ;TSI0 Base and Offsets
 ;From KL46 Sub-Family Reference Manual, Rev 3 page 843
 TSI0_BASE           EQU 0x40045000
@@ -62,28 +81,49 @@ TSI0_TSHD_OFFSET    EQU 0x8
 
 ;TSI0 Fields
 ;From KL46 Sub-Family Reference Manual, Rev 3 page 844-849
-
 TSI0_GENCS_OUTRGF_MASK  EQU 0x80000000
 TSI0_GENCS_TSIEN_MASK   EQU 0x00000080
 TSI0_GENCS_TSIIEN_MASK  EQU 0x00000040
+    
+TSI0_DATA_TSICH_SHIFT   EQU 28
+TSI0_DATA_SWTS_MASK     EQU 0x00400000
+TSI0_DATA_TSICNT_MASK   EQU 0x0000FFFF
 
 ;TSI0 Enable Mask
-; NVIC_IXXR
+; TSI0_GENCS
 ;  VAL -> BIT
 ;   1  -> 31  :OUTRGF : Clear out of range Flag
 ;   0  -> 28  : ESOR  : Use out of range interrupts
 ;  0000->27-24: MODE  : Use capacitive sensing mode
-;  111 ->23-21:REFCHRG: 64 microAmp charge value                  
-;   01 ->20-19: DVOLT : deltaV = 0.7?                             FIXME (Contradictory dV values???)
+;  101 ->23-21:REFCHRG: 16 microAmp charge value                  
+;   01 ->20-19: DVOLT : deltaV = 0.7?                             NOTE (Contradictory dV values???)
 ;  111 ->18-16:EXTCHRG: 64 microAmp charge value
 ;  000 ->15-13:  PS   : Don't prescale output of reference oscillator
-;      ->12- 8: NSCN  : Scan N Times
+;  0011->12- 8: NSCN  : Scan 4 Times
 ;   1  ->  7  : TSIEN : Enables TSI0
 ;   1  ->  6  :TSIIEN : Enable Interrupts
 ;   1  ->  5  : STPE  : Enable TSI0 in low power mode
-;      ->  4  :  STM  : Use Hardware? for Trigger scan
+;   0  ->  4  :  STM  : Use Software for Trigger scan
 ;   0  ->  1  : CURSW : Don't swap oscillators
-TSI0_EN_1     EQU 0x80EF00E0
+TSI0_EN_1     EQU 0x80AF03E0
+    
+    
+;TSI0 Data Config
+; TSI0_DATA
+;  VAL -> BIT
+;  1001->31-28:TSICH: Use Channel 9 (corresponds to electrode 1 of sensor)
+;   0  -> 23  :DMAEN: No DMA for interrupts
+;   0  -> 22  : SWT : Don't software trigger yet.
+TSI0_DATA_1   EQU (9 << TSI0_DATA_TSICH_SHIFT)
+	
+;TSI0 Data Config + Scan
+; TSI0_DATA
+;  VAL -> BIT
+;  1001->31-28:TSICH: Use Channel 9 (corresponds to electrode 1 of sensor)
+;   0  -> 23  :DMAEN: No DMA for interrupts
+;   1  -> 22  : SWT : Trigger a scan
+TSI0_DATA_1_SCAN   EQU (TSI0_DATA_1 :OR: TSI0_DATA_SWTS_MASK)
+
 ;TSI0 Disable Mask
 ; TSI0_GENCS
 ;  VAL->BIT
@@ -92,7 +132,7 @@ TSI0_EN_1     EQU 0x80EF00E0
 
 ;Settings
 ;The high threshold (16-bits)
-TSI0_HI_THRESHOLD   EQU
+TSI0_HI_THRESHOLD   EQU 234                                       ;FIXME Calibrate
 ;The low threshold (16-bits)
 TSI0_LO_THRESHOLD   EQU 0
 
@@ -113,6 +153,22 @@ TSI0_LO_THRESHOLD   EQU 0
 ; Modified: APSR
 EnableTSI   PROC {R0-R14}
             PUSH    {R0-R2}
+            ;Enable system clock to the PORTB.
+            LDR     R0,=SIM_SCGC5
+            LDR     R1,[R0,#0]
+            LDR     R2,=SIM_SCGC5_PORTB_MASK
+            ORRS    R1,R1,R2
+            STR     R1,[R0,#0]
+            ;Allow PTB16 (Electrode) to connect to TSI0
+            LDR     R0,=PORTB_BASE
+            ;[Already fused directly to TSI]
+            ;Set PTB17 (Electrode) to low.
+            LDR     R1,=PORTB_LOW_OUT_CONFIG
+            STR     R1,[R0,#PORTB_PCR16_OFFSET]
+            LDR     R0,=FGPIOB_BASE
+            LDR     R1,=PTB17_MASK
+            STR     R1,[R0,#GPIO_PDDR_OFFSET]
+            ;[By default it should be low, so we don't need to exp. set it]
             ;Enable Clock gating
             LDR     R0,=SIM_SCGC5
             LDR     R1,[R0,#0]
@@ -134,12 +190,14 @@ EnableTSI   PROC {R0-R14}
             LDR     R0,=NVIC_ISER
             STR     R1,[R0,#0]
             ;Config Module
-            LDR     R0,=TSI0_BASE     ;(Note to self: Internal reference capacitor is 1.0pF
-            
+            LDR     R0,=TSI0_BASE     ;(Note to self: Internal reference capacitor is 1.0pF)
+            ;LDR     R1,=TSI0_DATA_1  ; We don't need to do this yet because it is set when scan starts
+            ;STR     R1,[R0,#TSI0_DATA_OFFSET]
             ;Enable Module
             LDR     R1,=TSI0_EN_1
             STR     R1,[R0,#TSI0_GENCS_OFFSET]
             POP     {R0-R2}
+			BX      LR
             ENDP
                 
             EXPORT  DisableTSI    
@@ -169,12 +227,50 @@ DisableTSI  PROC {R0-R14}
             BICS    R1,R1,R2
             STR     R1,[R0,#0]
             POP     {R0-R2}
+			BX      LR
             ENDP
 
+
+            EXPORT  ScanTSI
+;Subroutine ScanTSI
+; Tells the TSI to start a scan.
+; Inputs
+;  NONE
+; Outputs
+;  NONE
+; Modified: APSR
+ScanTSI     PROC    {R0-R14}
+            PUSH    {R0-R1}
+	        ;Start a software scan
+            LDR     R0,=TSI0_BASE
+			LDR     R1,=TSI0_DATA_1_SCAN
+			STR     R1,[R0,#TSI0_DATA_OFFSET]
+            POP     {R0-R1}
+			BX      LR
+	        ENDP
+				
+            EXPORT  ReadTSIScaled 
+;Subroutine ReadTSIScaled
+; Determines where the TSI0 is pressed and scales the value to -127~127.
+; Returns 0 if the TSI is currently not being pressed.
+; ScanTSI must be called before this is called.
+; Inputs
+;  NONE
+; Outputs
+;  NONE
+; Modified: APSR
+ReadTSIScaled PROC {R0-R14}
+            PUSH    {R0-R2}
+	        ;Determine the TSI0_DATA_TSICNT_MASK
+            LDR     R0,=TSI0_BASE
+            POP     {R0-R2}
+			BX      LR
+	        ENDP
+	
 ;Interrupt Service Routine TSI0_IRQHandler
 ; Handles interrupts for the TSI0.
 ; Modified: R0-R3, APSR (NONE if via Interrupt)
-TSI0_IRQHandler   PROC    {R4-R11}, {}
+TSI0_IRQHandler PROC {R4-R11}
             
             BX      LR                      ;return (This statement and above one can be replaced w/ POP {PC})
             ENDP
