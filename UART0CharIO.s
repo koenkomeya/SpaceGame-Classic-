@@ -10,7 +10,7 @@
 ; projects with the Device>Startup package installed.
 ;The development of code presented in this module was 
 ; significantly aided with tutorials and instruction given in
-; RIT's CMPE-250. I don't deserve any credit for most of the
+; RIT's CMPE-250. I don't take any credit for most of the
 ; work in this file.
 ;Name:  Koen Komeya
 ;Date:  November 2, 2017

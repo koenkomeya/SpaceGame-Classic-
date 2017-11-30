@@ -26,9 +26,6 @@
 /// @addtogroup Variables
 /// @{
 
-///Storage for the E1's pointed to in #GameState.e1s
-Entity1 e1Storage[MAX_E1S];
-
 /// The current mode of operation.
 /// @see OperationMode
 opmode_t opMode;
@@ -39,6 +36,10 @@ void (*mode_tick)();
 /// The current mode's delegate for rendering
 void (*mode_render)();
 
+/// Contains the data for the current state.
+/// @see StateUnion
+StateUnion state;
+
 /// @}
 ///----------------------------------------------------------------------------
 /// @addtogroup Functions
@@ -48,6 +49,8 @@ void (*mode_render)();
 
 /// Assembly Subroutine to enable periodic ticks
 void EnableClock(void);
+/// Assembly Subroutine to enable state recording for buttons.
+void EnableButtonDriver(void);
 /// Assembly Subroutine to wait until the next timed tick.
 void WaitForTick(void);
 
@@ -57,11 +60,11 @@ void noop(){}
 /// Initializes game structures
 void startGame(){
 	//TODO finish initialize structures
-	GameState *gs; //FIXME set to location of the GameState
+	GameState *gs = &(state.game); //FIXME set to location of the GameState
 	//Initialize E1 container
 	gs->activeE1s = 0;
 	for (e1count_t i = 0; i < MAX_E1S; i++){
-		gs->e1s[i] = &e1Storage[i]; 
+		gs->e1s[i] = &(gs->e1Storage[i]); 
 	}
 	//Initialize Aliens
 	memset(&(gs->aliens), 0, sizeof(struct Alien_Mass));
@@ -82,8 +85,13 @@ void tick(){
 
 /// Entry point to the game
 int main(){
+	//Initialize variables/state.
+	opMode = OM_TransitionState; //Have to do this first to ensure some routine
+	                             //doesn't get called for deinitialization.
 	updateOpState(OM_TransitionState);
+	//Enable Peripherals
 	initRenderer();
+	EnableButtonDriver();
 	EnableClock();
 	//TODO initialize GameState
 	//Do tick loop: Tick every 0.02s interval

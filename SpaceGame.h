@@ -157,7 +157,16 @@ typedef struct GameState_s{
 	uint16_t score;
 	///Amount of lives player has
 	uint8_t lives;
+  ///Storage for the E1's pointed to in #GameState.e1s
+  Entity1 e1Storage[MAX_E1S];
 } GameState;
+
+///Data structure representing a union of every data structure of every
+/// independent state.
+/// Used to save memory.
+typedef union StateUnion_s{
+	GameState game;
+} StateUnion;
 
 /// @}
 ///----------------------------------------------------------------------------
@@ -167,6 +176,10 @@ typedef struct GameState_s{
 /// The current mode of operation (Do not update directly)
 /// @see updateOpState
 extern opmode_t opMode;
+
+/// Contains the data for the current state.
+/// @see StateUnion
+extern StateUnion state;
 
 /// @}
 ///----------------------------------------------------------------------------

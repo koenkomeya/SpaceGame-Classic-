@@ -67,6 +67,7 @@ LCD_GCR_LCDEN_MASK     EQU 0x00000080
 ;  VAL -> BIT
 ;   1  -> 31  :RVEN: Clear out of range Flag
 LCD_EN_1     EQU 
+
 ;LCD Disable Mask
 ; LCD_GENCS
 ;  VAL->BIT
