@@ -4,6 +4,12 @@
 /// @author Koen Komeya <kxk2610@rit.edu>
 /// @date 11/26/2017 ~
 /// [Final project for CMPE-250 (Section 4: Thursday 11 AM - 1 PM)]
+///----------------------------------------------------------------------------
+#ifndef TOUCHDRIVER_H
+#define TOUCHDRIVER_H
+///----------------------------------------------------------------------------
+/// @addtogroup Major Functions
+/// @{
 
 /// Enables the Touch Sensing Input module.
 void EnableTSI(void);
@@ -20,3 +26,5 @@ void ScanTSI(void);
 /// If it is not currently being pressed, returns 0.
 /// ScanTSI must be called before this is called.
 int ReadTSIScaled(void);
+/// @}
+#endif

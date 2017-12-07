@@ -15,6 +15,7 @@
 ///             Imports
 #include <string.h>
 
+#include "LCDDriver.h"
 #include "MKL46Z4.h"
 #include "SpaceGame.h"
 #include "SGRender.h"
@@ -118,6 +119,7 @@ void updateOpState(opmode_t newState){
 	__asm("CPSID I");
 	switch (opMode){ //Deinitialization Procedure
 		case OM_Game:
+			DisableLCD();
 		break;
 		case OM_GameOver:
 		break;
@@ -139,6 +141,7 @@ void updateOpState(opmode_t newState){
 			mode_tick = tickGame;
 		  mode_render = renderGame;
 			mode_posttick = postGame;
+		  EnableLCD();
 		break;
 		case OM_GameOver:
 			mode_tick = noop;
