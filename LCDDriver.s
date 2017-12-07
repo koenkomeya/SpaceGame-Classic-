@@ -69,7 +69,7 @@ LCD_EN_1     EQU (LCD_GCR_RVEN_MASK :OR: 1) ;FIXME!!!!
 ;MACROs
 ;**********************************************************************
 ;Program
-            AREA    MyCode,CODE,READONLY
+            AREA    LCDCode,CODE,READONLY
             EXPORT  EnableLCD 
 ;Subroutine EnableLCD
 ; Initializes the LCD for interrupt-based 
@@ -141,8 +141,8 @@ DisableLCD  PROC {R0-R14}
             ALIGN
 ;**********************************************************************
 ;Constants
-            AREA    MyConst,DATA,READONLY
+            AREA    LCDConst,DATA,READONLY
 ;**********************************************************************
 ;Variables
-            AREA    MyData,DATA,READWRITE
+            AREA    LCDData,DATA,READWRITE
             END
