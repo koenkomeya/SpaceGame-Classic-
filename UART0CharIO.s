@@ -119,8 +119,9 @@ SIM_SOPT5_UART0_EXTERN_MASK_CLEAR  EQU  \
 ;  0  -> 15 :LBKDIE : Disable interrupts for LIN Break Detection
 ;  0  -> 14 :RXEDGIE: Disable interrupts for active edges on RX Input
 ;  0  -> 13 : SBNS  : Use 1 Stop Bit
-;0x271->12-0:  SBR  : Baud Rate Modulo Divisor = 625 (Makes Baud Rate 9600)
-IUP_BD_9600     EQU     0x7102   ;reordered BDL then BDH (little endian shenanigans)
+;0x271->12-0:  SBR  : Baud Rate Modulo Divisor = 125 (Makes Baud Rate 96000)
+IUP_BD_96000   EQU     0x7D00   ;reordered BDL then BDH (little endian shenanigans)
+IUP_BD_480000  EQU     0x1900   ;reordered BDL then BDH (little endian shenanigans)
 ;UART0_C1 
 ; VAL->BIT
 ;  0 -> 7 :LOOPS : Don't use Loop Mode
@@ -197,8 +198,9 @@ IUP_C2_EN_TRIE  EQU     0xAC
 ; VAL ->BIT
 ; 00  -> 7 :MAEN: Don't filter recieved data.
 ;  0  -> 6 :M10 : Don't use 10-bit Mode
-;00111->5-0:OSR : Use an oversampling ratio of {0x7+1=} 8. (Makes Baud Rate 9600)     
-IUP_C4_9600     EQU     0x07
+;00111->5-0:OSR : Use an oversampling ratio of {0x3+1=} 4. (Makes Baud Rate 96000)     
+IUP_C4_96000   EQU     0x03
+IUP_C4_480000  EQU     0x03
 ;UART0_S1
 ; VAL->BIT
 ;  0 -> 7 :TDRE: No effect (Read-only)
@@ -254,11 +256,10 @@ QO_OUT_PTR  EQU     4   ;Queue Offset for OUTput PoinTeR  (word)
 QO_BUF_STRT EQU     8   ;Queue Offset for BUFfer's STaRT address (word) 
 QO_BUF_PAST EQU     12  ;Queue Offset for address PAST BUFfer end (word)
 QO_BUF_SIZE EQU     16  ;Queue Offset for BUFfer's SIZE (byte)
-QO_NUM_ENQD EQU     17  ;Queue Offset for NUMber of elements ENQueueD (byte)
-Q_SIZEOF    EQU     18  ;sizeof(queue)
+QO_NUM_ENQD EQU     18  ;Queue Offset for NUMber of elements ENQueueD (byte)
+Q_SIZEOF    EQU     20  ;sizeof(queue)
 	
-QBUF_SIZE   EQU     4
-IOQBUF_SIZE EQU     80
+IOQBUF_SIZE EQU     512 ;80
 ;****************************************************************
             AREA    CharIOCode,CODE,READONLY
             EXPORT  Init_UART0_IRQ
@@ -275,7 +276,7 @@ IOQBUF_SIZE EQU     80
 		    EXPORT  DIVU
 ;Subroutine Init_UART0_IRQ
 ; Initializes the UART0 for interrupt-based serial I/O with 8 data bits,
-; no parity, and one stop bit at 9600 baud.
+; no parity, and one stop bit at 96000 baud.
 ; Inputs
 ;  NONE
 ; Outputs
@@ -286,11 +287,11 @@ Init_UART0_IRQ  PROC    {R0-R14}
 ;Initialize Queues
             LDR     R0,=RxQBuffer
             LDR     R1,=RxQRecord
-            MOVS    R2,#IOQBUF_SIZE
+            LDR     R2,=IOQBUF_SIZE
             BL      InitQueue
             LDR     R0,=TxQBuffer
             LDR     R1,=TxQRecord
-            MOVS    R2,#IOQBUF_SIZE
+            ;MOVS    R2,#IOQBUF_SIZE
             BL      InitQueue
 ;Do UART0 stuff 
             ;Select GPLLCLK / 2 as UART0 clock source 
@@ -348,12 +349,12 @@ Init_UART0_IRQ  PROC    {R0-R14}
             ;Set Baud Rate Modulo Divisor and Oversampling Ratio.
             ;The values are chosen such that the baud rate essentially equals 9600.
             ; (Baud Rate = Baud clock / (BDR * (OSR + 1))
-            LDR     R1,=IUP_BD_9600               
+            LDR     R1,=IUP_BD_480000               
             STRH    R1,[R0,#UART0_BDH_OFFSET]   ;(This sets BDH and BDL at the same time)
             ;Initialize UART0
             STRB    R2,[R0,#UART0_C1_OFFSET]    ;Initialize UART C1 = 0
             STRB    R2,[R0,#UART0_C3_OFFSET]    ;Initialize UART C3 = 0
-            MOVS    R1,#IUP_C4_9600             ;Initialize UART C4
+            MOVS    R1,#IUP_C4_480000            ;Initialize UART C4
             STRB    R1,[R0,#UART0_C4_OFFSET]
             STRB    R2,[R0,#UART0_C5_OFFSET]    ;Initialize UART C5 = 0
             LDR     R1,=IUP_S1_CLR_FL_S2_CLR_FL ;Clear Flags on UART S1 and UART S2
@@ -502,7 +503,7 @@ PutStringSB PROC    {R0-R14}
 ;R2 is used to represent the current offset in the buffer
 ;R3 is used to hold the buffer pointer
             PUSH    {R0,R2-R3,LR}
-            CMP     R1,#1           ; Check if buffer length is <= 1. If this is the case,
+            CMP     R1,#0           ; Check if buffer length is <= 0. If this is the case,
             BLE     PSSB_Return     ; it shouldn't have anything to print so return
             MOVS    R2,#0           ;Initializes R2 to 0
             MOV     R3,R0           ;Moves the buffer pointer to R3.
@@ -578,11 +579,11 @@ InitQueue   PROC    {R0-R14}
             STR     R0,[R1,#QO_IN_PTR]   ;R1->in_ptr = R0 
 			STR     R0,[R1,#QO_OUT_PTR]  ;R1->out_ptr = R0
 			STR     R0,[R1,#QO_BUF_STRT] ;R1->buf_strt = R0
-			STRB    R2,[R1,#QO_BUF_SIZE] ;R1->buf_size = R2
+			STRH    R2,[R1,#QO_BUF_SIZE] ;R1->buf_size = R2
 			ADD     R2,R2,R0
 			STR     R2,[R1,#QO_BUF_PAST] ;R1->buf_past = R0 + R2
 			MOVS    R2,#0
-			STRB    R2,[R1,#QO_NUM_ENQD] ;R1->num_enqd = 0
+			STRH    R2,[R1,#QO_NUM_ENQD] ;R1->num_enqd = 0
 			POP     {R2,PC}
 			ENDP
 
@@ -596,13 +597,13 @@ InitQueue   PROC    {R0-R14}
 ; Modified: R0, APSR
 Dequeue     PROC    {R1-R14}
 	        PUSH    {R2,R3,LR}
-            LDRB    R3,[R1,#QO_NUM_ENQD];R3 = R1->num_enqd
+            LDRH    R3,[R1,#QO_NUM_ENQD];R3 = R1->num_enqd
 DQ_IfNone
 			CMP     R3,#0
 			BEQ     DQ_Return           ;if(R3 == 0) return fail [Since they're equal, C = 1]     
 DQ_EndIfNone                            ;
             SUBS    R3,R3,#1            ;R3--;
-			STRB    R3,[R1,#QO_NUM_ENQD];R1->num_enqd = R3
+			STRH    R3,[R1,#QO_NUM_ENQD];R1->num_enqd = R3
             LDR     R2,[R1,#QO_OUT_PTR] ;R2 = R1->out_ptr
 			LDRB    R0,[R2,#0]          ;R0 = *R2
 			ADDS    R2,R2,#1            ;R2++ 
@@ -630,14 +631,14 @@ DQ_Return
 ; Modified: APSR
 Enqueue     PROC    {R0-R14}
 	        PUSH    {R2,R3,LR}
-            LDRB    R2,[R1,#QO_BUF_SIZE];R2 <- R1->buf_size
-            LDRB    R3,[R1,#QO_NUM_ENQD];R3 = R1->num_enqd
+            LDRH    R2,[R1,#QO_BUF_SIZE];R2 <- R1->buf_size
+            LDRH    R3,[R1,#QO_NUM_ENQD];R3 = R1->num_enqd
 NQ_IfNone
 			CMP     R3,R2
 			BEQ     NQ_Return           ;if(R3 == R1->buf_size) return fail [Since they're equal, C = 1]
 NQ_EndIfNone                            
             ADDS    R3,R3,#1            ;R3++;
-			STRB    R3,[R1,#QO_NUM_ENQD];R1->num_enqd = R3
+			STRH    R3,[R1,#QO_NUM_ENQD];R1->num_enqd = R3
             LDR     R2,[R1,#QO_IN_PTR]  ;R2 = R1->in_ptr
 			STRB    R0,[R2,#0]          ;*R2 = R0
 			ADDS    R2,R2,#1            ;R2++ 
@@ -699,7 +700,7 @@ PNH_EndFor                          ;}
 			POP     {R0-R2,PC}
 			ENDP
 			
-;Subroutine PutNum
+;Subroutine PutNumU
 ; Blocking write for an unsigned integer to the UART0.
 ; Inputs
 ;  R0 - Unsigned integer to print
@@ -777,7 +778,7 @@ PNUB_Skip10sPlace
 ; Modified: APSR
 PrintQueue  PROC    {R1-R14}
 	        PUSH    {R0,R2-R4,LR}
-            LDRB    R2,[R1,#QO_NUM_ENQD] ;R2 <- R1->num_enqd
+            LDRH    R2,[R1,#QO_NUM_ENQD] ;R2 <- R1->num_enqd
 PQ_IfNone
 			CMP     R2,#0
 			BEQ     PQ_Return            ;if(R2 == 0) return
@@ -802,7 +803,6 @@ PQ_Return
             POP     {R0,R2-R4,PC}       ;return
 			ENDP
 				
-                
 ;Subroutine Flush
 ; Flushes the transmit buffer.
 ; Interrupts should be disabled when calling
@@ -874,7 +874,7 @@ RxQRecord   SPACE   Q_SIZEOF
 TxQRecord   SPACE   Q_SIZEOF
 RxQBuffer   SPACE   IOQBUF_SIZE
 TxQBuffer   SPACE   IOQBUF_SIZE
-PutNumUBuf  SPACE   10  		;Defines Buffer of size 11.
+PutNumUBuf  SPACE   11  		;Defines Buffer of size 11.
 ;>>>>>   end variables here <<<<<
             ALIGN
             END

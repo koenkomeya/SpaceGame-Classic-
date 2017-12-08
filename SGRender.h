@@ -17,13 +17,24 @@
 /// Includes
 #include "SpaceGame.h"
 ///----------------------------------------------------------------------------
+/// @addtogroup Defines
+/// @{
+
+/// X Max of screen
+#define SCREEN_WIDTH 80
+
+/// Y Max of screen
+#define SCREEN_HEIGHT 40
+
+/// @}
+///----------------------------------------------------------------------------
 /// @addtogroup Major Functions
 /// @{
 /// @brief Initializes the renderer.
 void initRenderer(void);
 
-/// @brief Draw an alien at the specified position and direction
-void drawAlien(alientype_t t, pos_t x, pos_t y, pos_t xd, pos_t yd);
+/// @brief Draw an alien; the specified location is if it is not swooping
+void drawAlien(Alien *a, pos_t x, pos_t y);
 
 /// @brief Draw player at the specified position
 void drawPlayer(pos_t x, pos_t y);
@@ -31,17 +42,21 @@ void drawPlayer(pos_t x, pos_t y);
 /// @brief Draw an E1 at the specified position and direction
 void drawE1(int8_t e1flags1, pos_t x, pos_t y, pos_t xd, pos_t yd);
 
-void drawLevelScreen(int level);
+void drawLevelScreen(int level, int lives, int score);
 
 void drawMainMenu(void);
 
-void drawGameOverScreen(void);
+void drawGameOverScreen(int score);
 
 void drawIntroduction1(void);
 
 void drawInstructions(void);
 	
 void clearScreen(void);
+	
+void flushScreen(void);
+
+void drawScore(int score);
 
 /// @}
 #endif 

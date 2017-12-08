@@ -66,6 +66,11 @@ void PutNumUB (uint8_t num);
  */
 void PutNumHex (uint32_t num);
 
+/**
+ * Flushes the output. (Interrupts need to be disabled.)
+ */
+void Flush (void);
+
 /// @}
 ///----------------------------------------------------------------------------
 /// @addtogroup Functional Macros

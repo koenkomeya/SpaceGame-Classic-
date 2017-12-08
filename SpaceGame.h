@@ -18,6 +18,10 @@
 
 /// Number of lives player should start with
 #define STARTING_LIVES 2
+/// Number of lives player should start with
+#define STARTING_X 0x2800
+/// Number of lives player should start with
+#define STARTING_Y 0x0180
 
 
 /// Number of rows in the alien grid. Adjust #aliencount_t when modified.
@@ -26,9 +30,31 @@
 /// Number of columns in the alien grid. Adjust #aliencount_t when modified.
 /// @see Alien_Mass
 #define ALIEN_COLS 10
+/// How spread across the aliens are horizontally
+/// @see Alien_Mass
+#define ALIEN_MASS_SPREAD_X 0x300
+/// How spread across the aliens are vertically
+/// @see Alien_Mass
+#define ALIEN_MASS_SPREAD_Y 0x200
+/// Width of Alien Mass
+/// @see Alien_Mass
+#define ALIEN_MASS_WIDTH (ALIEN_MASS_SPREAD_X * (ALIEN_COLS - 1))
+/// Height of Alien Mass
+/// @see Alien_Mass
+#define ALIEN_MASS_HEIGHT (ALIEN_MASS_SPREAD_Y * (ALIEN_ROWS - 1))
+/// Starting X-coord of Alien Mass
+/// @see Alien_Mass
+#define ALIEN_MASS_START_X (0x2800 - (ALIEN_MASS_WIDTH / 2))
+/// Starting Y-coord of Alien Mass
+/// @see Alien_Mass
+#define ALIEN_MASS_START_Y (39 << 8)
 /// Number of Weapons/Entity1's that can be present at once in the game.
 /// @see GameState
 #define MAX_E1S 80
+
+#define E1_RADIUS 0x80
+#define PLAYER_RADIUS 0x100
+#define ENEMY_RADIUS 0x100
 
 /// @}
 ///----------------------------------------------------------------------------
@@ -142,8 +168,24 @@ struct Alien_Mass{
 	pos_t massYPos;
 	///The array of the aliens
 	Alien alienArray[ALIEN_ROWS * ALIEN_COLS];
-	///Time until alien attack in ticks
+	///Time until next alien attack in ticks
 	uint16_t etaAlienAttack;
+	///Period of alien attacks
+	uint16_t alienAttackTime;
+};
+
+#define PLAYER_GUN_COOLDOWN 60
+///Data structure containing all necessary info for a player
+struct PlayerGameData{
+	///X Position
+	pos_t xPos; 
+	///Y Position
+	pos_t yPos;
+	///Amount of lives player has
+	uint8_t lives;
+	///Laser cooldown
+	uint8_t cooldown;
+	uint8_t dying;
 };
 
 
@@ -158,12 +200,9 @@ typedef struct GameState_s{
 	///Array of pointers to E1's such that the first #GameState.activeE1s entries
 	/// point to active E1's and the remainder point to inactive E1's.
 	Entity1 *e1s[MAX_E1S];
-	/// FIXME structure for Player
-	pos_t ply_pos_x, ply_pos_y;
-	///Player's score
-	uint16_t score;
-	///Amount of lives player has
-	uint8_t lives;
+	///Game-only data for player
+	struct PlayerGameData player;
+	
   ///Storage for the E1's pointed to in #GameState.e1s
   Entity1 e1Storage[MAX_E1S];
 } GameState;
@@ -183,6 +222,14 @@ typedef struct Inputs_s{
   bool buttonPressed;
 } Inputs;
 
+///Data structure for variables that are common to at least most states.
+typedef struct SharedData_s{
+	///Player's score
+	uint16_t score;
+	///Current level on.
+	uint8_t level;
+} SharedData;
+
 /// @}
 ///----------------------------------------------------------------------------
 /// @addtogroup Variables
@@ -200,6 +247,10 @@ extern StateUnion state;
 /// @see Inputs
 extern Inputs inputs;
 
+/// Contains data common to at least most states.
+/// @see SharedData
+extern SharedData data;
+
 /// @}
 ///----------------------------------------------------------------------------
 /// @addtogroup Functions
@@ -210,9 +261,12 @@ void updateOpState(opmode_t);
 
 /// Checks if a button is pressed or has been pressed since the last call.
 /// @pre Startup routine in main() has been completed.
-/// @returns if a button is pressed or has been pressed since the last call.
+/// @return if a button is pressed or has been pressed since the last call.
 bool CheckAndClearPress(void);
 
+///Generates a pseudo-random number
+///@return a pseudo-random number
+//int rand(void);
 
 /// @}
 #endif

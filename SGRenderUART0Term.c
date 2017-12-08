@@ -57,7 +57,7 @@ static void setCursorPos(int xc, int yc){
 	PutNumU(yc);
 	PutChar(';');
 	PutNumU(xc);
-	PutChar('H');
+	PutChar('f');
 }
 
 /// Initializes the renderer.
@@ -76,7 +76,7 @@ void initRenderer(void){
 		          "of a terminal that supports ANSI escape sequences.");
 		char curbuf[16];          //Read cursor position
 		GETSTRLIN(curbuf);        
-		PUTSTRLIT(ANSI_CSI "3J"); //Clear Screen
+		clearScreen(); //Clear Screen
 		PUTSTRLIT(ANSI_CSI "H");  //Position cursor at top left.
 		if (strcmp(curbuf, ANSI_CSI STRINGIFY(TERM_WIDTH) ";" \
 			         STRINGIFY(TERM_HEIGHT) "R") != 0){
@@ -90,23 +90,67 @@ void initRenderer(void){
 	
 }
 
-///  Draw an alien at the specified position and direction
-/// @param t type of alien
-/// @param x x-ccordinate of location
-/// @param y y-coordinate of location
-/// @param xd x-facing of location
-/// @param yd y-facing of location
+static inline char returnAngled(pos_t xd, pos_t yd, char up, char down, char left, char right){
+	if (yd > 0){
+		if (xd > 0){
+			if (xd > yd)  return right;
+			else          return up;
+		} else {
+			if (-xd > yd) return left;
+			else          return up;
+		}
+	} else {
+		if (xd > 0){
+			if (xd > -yd) return right;
+			else          return down;
+		} else {
+			if (xd < yd)  return left;
+			else          return down;
+		}
+	}
+}
 
-void drawAlien(alientype_t t, pos_t x, pos_t y, pos_t xd, pos_t yd){
-	//TODO Angles and better sprites
-	int xt = (x >> 8) + 1;
-	int yt = 40 - (y >> 8);
-	setCursorPos(xt, yt);
-	char alienChar; //@ & % - potential chars
-	if      (t == AT_Grunt) alienChar = 'V';
-	else if (t == AT_Cruiser) alienChar = 'W';
-	else if (t == AT_Battleship) alienChar = '#';
-	PutChar(alienChar);
+///  Draw an alien
+/// @param a Alien to draw
+/// @param x x-ccordinate of cluster location
+/// @param y y-coordinate of clusterlocation
+void drawAlien(Alien *a, pos_t x, pos_t y){
+	uint8_t f1 = a->flags1;
+	if (!(f1 & AL_F1_ALIVE_MASK)) return;
+	//TODO better sprites
+	uint8_t t = a->type;
+	
+	if (f1 & (AL_F1_ATTACK_MASK | AL_F1_SWOOP_MASK)) { //Swooping or attacking
+		int xt = (a->xPos >> 8) + 1;
+		int yt = 40 - (a->yPos >> 8);
+		setCursorPos(xt, yt);
+		if (f1 & AL_F1_DYING_MASK){ //Exploding?
+      PUTSTRLIT(ANSI_CSI "37m"); 
+			PutChar('X');
+			return;
+		}
+    PUTSTRLIT(ANSI_CSI "31m"); 
+		char alienChar; //@ & % - potential chars
+		if      (t == AT_Grunt) alienChar = returnAngled(a->xPos, a->yPos, 'A', 'V', '<', '>');
+		else if (t == AT_Cruiser) alienChar = returnAngled(a->xPos, a->yPos, 'M', 'W', 'E', '3');
+		else if (t == AT_Battleship) alienChar = '#';
+	  PutChar(alienChar);
+	} else {
+		int xt = (x >> 8) + 1;
+		int yt = 40 - (y >> 8);
+		setCursorPos(xt, yt);
+		if (f1 & AL_F1_DYING_MASK){ //Exploding?
+      PUTSTRLIT(ANSI_CSI "37m"); 
+			PutChar('X');
+			return;
+		}
+    PUTSTRLIT(ANSI_CSI "31m"); 
+		char alienChar; //@ & % - potential chars
+		if      (t == AT_Grunt) alienChar = 'V';
+		else if (t == AT_Cruiser) alienChar = 'W';
+		else if (t == AT_Battleship) alienChar = '#';
+	  PutChar(alienChar);
+	}
 }
 
 //                A
@@ -115,7 +159,8 @@ void drawAlien(alientype_t t, pos_t x, pos_t y, pos_t xd, pos_t yd){
 /// It is assumed the player is positioned so there will be no clipping
 void drawPlayer(pos_t x, pos_t y){
 	int xt = (x >> 8) + 1;
-	int yt = 40 - (y >> 8);
+	int yt = 40 - ((y - 0x80) >> 8);
+	PUTSTRLIT(ANSI_CSI "34m"); 
 	setCursorPos(xt, yt - 1);
 	PutChar('A');
 	setCursorPos(xt - 1, yt);
@@ -128,7 +173,11 @@ void drawPlayer(pos_t x, pos_t y){
 void drawE1(int8_t e1flags1, pos_t x, pos_t y, pos_t xd, pos_t yd){
 	int xt = (x >> 8) + 1;
 	int yt = 40 - (y >> 8);
-	setCursorPos(xt, yt - 1);
+	if (e1flags1 & E1_F1_SIDE_MASK) 
+	  PUTSTRLIT(ANSI_CSI "1;36m"); 
+	else 
+	  PUTSTRLIT(ANSI_CSI "1;33m"); 
+	setCursorPos(xt, yt);
 	if (yd < 0){
 		xd = -xd;
 		yd = -yd;
@@ -139,18 +188,60 @@ void drawE1(int8_t e1flags1, pos_t x, pos_t y, pos_t xd, pos_t yd){
 	else                    PutChar('|');
 }
 
-void drawLevelScreen(int level);
+void drawLevelScreen(int level, int lives, int score){
+	clearScreen();
+	PUTSTRLIT(ANSI_CSI "0m"); 
+	setCursorPos(34, 15);
+	PUTSTRLIT("LEVEL");
+	setCursorPos(44, 15);
+	PutNumU(level);
+	setCursorPos(32, 16);
+	PUTSTRLIT("------------------");
+	setCursorPos(50, 38);
+	PUTSTRLIT("Lives");
+	setCursorPos(57, 38);
+	PutNumU(lives);
+	setCursorPos(50, 39);
+	PUTSTRLIT("Score");
+	setCursorPos(57, 39);
+	PutNumU(score);
+}
 
 void drawMainMenu(void);
 
-void drawGameOverScreen(void);
+void drawGameOverScreen(int score){
+	clearScreen();
+	setCursorPos(36, 15);
+	PUTSTRLIT(ANSI_CSI "31m"); 
+	PUTSTRLIT("GAME  OVER");
+	setCursorPos(36, 15);
+	setCursorPos(35, 39);
+	PUTSTRLIT(ANSI_CSI "0m"); 
+	PUTSTRLIT("Score");
+	setCursorPos(42, 39);
+	PutNumU(score);
+}
 
 void drawIntroduction1(void);
 
 void drawInstructions(void);
 	
 void clearScreen(void){
-		PUTSTRLIT(ANSI_CSI "3J"); //Clear Screen
+		PUTSTRLIT(ANSI_CSI "2J"); //Clear Screen
+}
+
+void flushScreen(void){
+	__asm("CPSID I");
+	Flush();
+	__asm("CPSIE I");
+}
+
+void drawScore(int score){
+	setCursorPos(68, 40);
+	PUTSTRLIT(ANSI_CSI "0m"); 
+	PUTSTRLIT("Score");
+	setCursorPos(74, 40);
+	PutNumU(score);
 }
 
 /// @}

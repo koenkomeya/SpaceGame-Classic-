@@ -1,7 +1,7 @@
       TTL Low Power Timer Driver / PORTC + FGPIO Button Driver
 ;**********************************************************************
 ;Implements a driver for the LPTMR0 (Low Power Timer) to make it run 
-; the function tick() in SpaceGame.c every sixtieth of a second.
+; the function tick() in SpaceGame.c every hundredth of a second.
 ;Implements a driver for the PORTC to interrupt when either of the
 ; ports PTC3 and PTC12, which correspond to the two pushbuttons, go 
 ; high and for the FGPIO to read their state.
@@ -78,12 +78,12 @@ LPTMR0_CSR_TCF_S2C      EQU (LPTMR0_CSR_TCF_SHIFT + 1) ;Shift to carry
 ;LPTMR0 Main Control Register Config
 ; LPTMR0_PSR
 ;  VAL->BIT
-;   1 -> 6 :TIE: Enable Interrupts for timer
+;   0 -> 6 :TIE: Disable Interrupts for timer
 ;   X ->5-3:---: Related to Pulse Counter Mode
-;   1 -> 2 :TFC: Free-Running Timer
+;   0 -> 2 :TFC: Reset on Timer Compare Flag
 ;   0 -> 1 :TMS: Use Time Counter Mode
 ;   1 -> 0 :TEN: Enable the Timer
-LPTMR0_CSR_P_TC_EN  EQU 0x00000045
+LPTMR0_CSR_P_TC_EN  EQU 0x00000001
     
 ;LPTMR0 Main Control Register Config + Clear Timer Compare Flag
 ; LPTMR0_PSR
@@ -91,14 +91,14 @@ LPTMR0_CSR_P_TC_EN  EQU 0x00000045
 ;   1 -> 7 :TCF: Clear Timer Compare Flag
 ;   0 -> 6 :TIE: Disable Interrupts for timer
 ;   X ->5-3:---: Related to Pulse Counter Mode
-;   1 -> 2 :TFC: Free-Running Timer
+;   0 -> 2 :TFC: Reset on Timer Compare Flag
 ;   0 -> 1 :TMS: Use Time Counter Mode
 ;   1 -> 0 :TEN: Enable the Timer
 LPTMR0_CSR_P_TC_EN_CLEARTCF EQU (LPTMR0_CSR_P_TC_EN :OR: LPTMR0_CSR_TCF_MASK)
 
-; We need to get the prescaler to run every 0.02 seconds.
-; Therefore we need to ensure an interrupt happens every (4MHz*0.02s=80000)
-; cycles of the MCGIRCLK. 80000 = 128 * 625
+; We need to get the prescaler to run every 0.01 seconds.
+; Therefore we need to ensure an interrupt happens every (4MHz*0.01s/2=20000)
+; cycles of the MCGIRCLK. 20000 = 32 * 625
 ;LPTMR0 Prescaler Mask
 ; LPTMR0_PSR
 ;  VAL ->BIT
@@ -106,6 +106,8 @@ LPTMR0_CSR_P_TC_EN_CLEARTCF EQU (LPTMR0_CSR_P_TC_EN :OR: LPTMR0_CSR_TCF_MASK)
 ;    0 -> 2 :  PBYP  : Use Prescaler
 ;   00 ->1-0:  PCS   : Use MCGIRCLK (see page 93 of above ref manual)
 LPTMR0_PSR_MCGIRC_PRE128    EQU 0x00000030
+LPTMR0_PSR_MCGIRC_PRE64     EQU 0x00000028
+LPTMR0_PSR_MCGIRC_PRE32     EQU 0x00000020
 
 ;LPTMR0 Compare Value
 ; LPTMR0_CMR
@@ -169,7 +171,7 @@ PTC3_PTC12_MASK    EQU 0x00001008
             EXPORT  WaitForTick
 ;Subroutine EnableClock
 ; Initializes the LPTMR (Low Power Timer) for poll-based 
-;  timing at 50Hz.
+;  timing at 100Hz.
 ; If the clock is already enabled, undefined behavior ensues.
 ; Inputs
 ;  NONE
@@ -184,6 +186,12 @@ EnableClock  PROC {R0-R14}
             MOVS    R2,#SIM_SCGC5_LPTMR_MASK
             ORRS    R1,R1,R2
             STR     R1,[R0,#0]
+            ;Force fast internal reference clock
+            LDR     R0,=MCG_C2
+            MOVS    R1,#MCG_C2_IRCS_MASK
+            LDRB    R2,[R0]
+            ORRS    R2,R2,R1
+            STRB    R2,[R0]
 ;           ;Set interrupt priority
 ;           LDR     R0,=LPTMR0_IPR
 ;           LDR     R1,[R0,#0]
@@ -200,7 +208,7 @@ EnableClock  PROC {R0-R14}
 ;           STR     R1,[R0,#0]
             ;config & Enable Module
             LDR     R0,=LPTMR0_BASE
-            MOVS    R1,#LPTMR0_PSR_MCGIRC_PRE128
+            MOVS    R1,#LPTMR0_PSR_MCGIRC_PRE32
             STR     R1,[R0,#LPTMR0_PSR_OFFSET]
             LDR     R1,=LPTMR0_CMR_COMPARE625
             STR     R1,[R0,#LPTMR0_CMR_OFFSET]
@@ -314,6 +322,10 @@ CheckAndClearPress PROC {R1-R14}
             LDR     R2,=PTC3_PTC12_MASK
             LDR     R1,[R1,#GPIO_PDIR_OFFSET]
             ANDS    R1,R1,R2
+            RSBS    R0,R0,#0 
+            ASRS    R1,R1,#31  
+            RSBS    R0,R0,#0 
+            ;ADDS    R0,R0,#1
             ;Sum together the two possibilities and normalize to 0 or 1.
             ADDS    R0,R0,R1
             RSBS    R0,R0,#0 
@@ -323,6 +335,7 @@ CheckAndClearPress PROC {R1-R14}
             BX      LR
             ENDP
                 
+            EXPORT  PORTC_PORTD_IRQHandler
 ;Interrupt Service Routine PORTC_PORTD_IRQHandler
 ; Handles interrupts for the PORTC pins (technically also handles 
 ;  PORTD, but we don't listen to any of PORTD's ports).

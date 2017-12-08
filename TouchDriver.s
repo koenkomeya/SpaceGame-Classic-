@@ -136,7 +136,7 @@ TSI0_DATA_SCAN10    EQU ((TSI_ELECTRODE2 << TSI0_DATA_TSICH_SHIFT) :OR: TSI0_DAT
 ;  NONE
 ; Modified: APSR
 EnableTSI   PROC    {R0-R14}
-            PUSH    {R0-R2}
+            PUSH    {R0-R2,LR}
             ;Enable system clock to the PORTB.
             LDR     R0,=SIM_SCGC5
             LDR     R1,[R0,#0]
@@ -174,7 +174,7 @@ EnableTSI   PROC    {R0-R14}
             ;Enable Module
             LDR     R1,=TSI0_EN_1
             STR     R1,[R0,#TSI0_GENCS_OFFSET]
-            ;Get Untouched values and add 1 to each to get threshold values.
+            ;Get Untouched values and add 2 to each to get threshold values.
             BL      ScanTSI
 ETSIScanWait; Wait for scan to complete
             LDR     R0,=ScanDone
@@ -184,11 +184,10 @@ ETSIScanWait; Wait for scan to complete
             ; Copy values into threshold
             LDR     R0,=Scan1Res
             LDM     R0!,{R1}
-            LDR     R2,=0x00010001 ;Add 1 to each threshold
+            LDR     R2,=0x00020002 ;Add 2 to each threshold
             ADD     R1,R1,R2
             STR     R1,[R0]
-            POP     {R0-R2}
-			BX      LR
+            POP     {R0-R2,PC}
             ENDP
                 
             EXPORT  DisableTSI    
@@ -312,10 +311,12 @@ RTS_Max     ;We got a value of 128 or more, return 127
             POP     {R1-R3,PC}
 	        ENDP
 	
+            EXPORT  TSI0_IRQHandler
 ;Interrupt Service Routine TSI0_IRQHandler
 ; Handles interrupts for the TSI0.
 ; Modified: R0-R1, APSR (NONE if via Interrupt)
 TSI0_IRQHandler PROC {R4-R11}
+            LDR     R0,=TSI0_BASE
             LDR     R1,[R0,#TSI0_GENCS_OFFSET]
 			;Clear scan complete
 			STR     R1,[R0,#TSI0_GENCS_OFFSET]
@@ -341,7 +342,7 @@ TIH_Elec2   ;Code for Electrode 2
             LDR     R0,=Scan2Res
             STRH    R1,[R0]
             ; Set ScanDone
-            LDR     R0,=Scan2Res
+            LDR     R0,=ScanDone
             MOVS    R1,#1
             STRB    R1,[R0]
             BX      LR                 

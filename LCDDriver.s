@@ -74,7 +74,28 @@ LCD_PRI_SET  EQU (LCD_PRI << LCD_PRI_POS)
 ;  011 -> 2-0 :  DUTY   : 1/4 Duty Cycle (Req'd by the on-board LCD)
 LCD_GCR_SETUP   EQU (LCD_GCR_CPSEL_MASK :OR: (1 << LCD_GCR_LADJ_SHIFT) :OR: \
                      LCD_GCR_PADSAFE_MASK :OR: LCD_GCR_FFR_MASK :OR: \
-                     (1 << LCD_GCR_LCLK_SHIFT) :OR: (3 << LCD_GCR_DUTY_SHIFT)) 
+                     (4 << LCD_GCR_LCLK_SHIFT) :OR: (3 << LCD_GCR_DUTY_SHIFT)) 
+; LCD_GCR
+;  VAL -> BIT
+;   0  -> 31  :  RVEN   : No Regulated Voltage
+; 0000 ->27-24: RVTRIM  : (Don't trim Regulated Voltage.)
+;   1  -> 23  :  CPSEL  : Use Charge Pump
+;  01  ->21-20:  LADJ   : Intermediate clock source (for glass cap 2000pF or less)
+;   0  -> 17  : VSUPPLY : Use internal voltage supply.
+;   0  -> 15  : PADSAFE : Disable PADSAFE
+;   0  -> 14  : FDCIEN  : No interrupts
+;  00  ->13-12: ALTDIV  : No clock divider
+;   0  -> 11  :ALTSOURCE: (Alt Clock Source 1)
+;   1  -> 10  :   FFR   : Fast frame rate
+;   0  ->  9  : LCDDOZE : Don't disable in Doze Mode
+;   0  ->  8  : LCDSTP  : Don't disable in Stop Mode
+;   1  ->  7  :  LCDEN  : Enable LCD 
+;   0  ->  6  : SOURCE  : Use default clocks
+;  001 -> 5-3 :  LCLK   : Use Clock Prescaler for clock frame freq of 51.2 Hz
+;  011 -> 2-0 :  DUTY   : 1/4 Duty Cycle (Req'd by the on-board LCD)
+LCD_GCR_SETUP_2 EQU (LCD_GCR_CPSEL_MASK :OR: (1 << LCD_GCR_LADJ_SHIFT) :OR: \
+                     LCD_GCR_LCDEN_MASK :OR: LCD_GCR_FFR_MASK :OR: \
+                     (4 << LCD_GCR_LCLK_SHIFT) :OR: (3 << LCD_GCR_DUTY_SHIFT)) 
 
 ;LCD Disable Mask
 ; LCD_GENCS
@@ -97,15 +118,15 @@ LCD_BPENL_COM   EQU 0x000C0000
 ;LCD Segments (with COM0 = LCD_WF_A, COM1 = LCD_WF_B, COM2 = LCD_WF_C, COM3 = LCD_WF_D
 ;Segments ccording to the Lumex LCD-S401M16KR Data Sheet
     ; Lo phases
-LCD_P_SEG   EQU LCD_WF_A_MASK
-LCD_A_SEG   EQU LCD_WF_D_MASK
-LCD_B_SEG   EQU LCD_WF_C_MASK
-LCD_C_SEG   EQU LCD_WF_B_MASK
+LCD_P_SEG   EQU LCD_WF_A_MASK :OR: LCD_WF_E_MASK
+LCD_A_SEG   EQU LCD_WF_D_MASK :OR: LCD_WF_H_MASK
+LCD_B_SEG   EQU LCD_WF_C_MASK :OR: LCD_WF_G_MASK
+LCD_C_SEG   EQU LCD_WF_B_MASK :OR: LCD_WF_F_MASK
     ; Hi phases
-LCD_D_SEG   EQU LCD_WF_A_MASK
-LCD_E_SEG   EQU LCD_WF_B_MASK
-LCD_F_SEG   EQU LCD_WF_D_MASK
-LCD_G_SEG   EQU LCD_WF_C_MASK
+LCD_D_SEG   EQU LCD_WF_A_MASK :OR: LCD_WF_E_MASK
+LCD_E_SEG   EQU LCD_WF_B_MASK :OR: LCD_WF_F_MASK
+LCD_F_SEG   EQU LCD_WF_D_MASK :OR: LCD_WF_H_MASK
+LCD_G_SEG   EQU LCD_WF_C_MASK :OR: LCD_WF_G_MASK
     
 ;LCD Pins
 LCD_ONES_HI EQU 37
@@ -202,6 +223,26 @@ EnableLCD   PROC {R0-R14}
             STR     R1,[R0,#LCD_BPENH_OFFSET]
             LDR     R1,=LCD_BPENL_COM
             STR     R1,[R0,#LCD_BPENL_OFFSET]
+            ; Write "Reset Values"
+            MOVS    R1,#0
+            STR     R1,[R0,#LCD_AR_OFFSET]
+            STR     R1,[R0,#LCD_FDCR_OFFSET]
+            STR     R1,[R0,#LCD_WF3TO0_OFFSET]
+            STR     R1,[R0,#LCD_WF7TO4_OFFSET]
+            STR     R1,[R0,#LCD_WF11TO8_OFFSET]
+            STR     R1,[R0,#LCD_WF15TO12_OFFSET]
+            STR     R1,[R0,#LCD_WF19TO16_OFFSET]
+            STR     R1,[R0,#LCD_WF23TO20_OFFSET]
+            STR     R1,[R0,#LCD_WF27TO24_OFFSET]
+            STR     R1,[R0,#LCD_WF31TO28_OFFSET]
+            STR     R1,[R0,#LCD_WF35TO32_OFFSET]
+            STR     R1,[R0,#LCD_WF39TO36_OFFSET]
+            STR     R1,[R0,#LCD_WF43TO40_OFFSET]
+            STR     R1,[R0,#LCD_WF47TO44_OFFSET]
+            STR     R1,[R0,#LCD_WF51TO48_OFFSET]
+            STR     R1,[R0,#LCD_WF55TO52_OFFSET]
+            STR     R1,[R0,#LCD_WF59TO56_OFFSET]
+            STR     R1,[R0,#LCD_WF63TO60_OFFSET]
             ; Setup COM patterns
             LDR     R0,=LCD_WF     
             MOVS    R1,#LCD_WF_C_MASK
@@ -215,10 +256,8 @@ EnableLCD   PROC {R0-R14}
             STRB    R1,[R0,#(52 - 40)]
             ;Enable Module
             MOV     R0,R2          
-            LDR     R1,[R0,#LCD_GCR_OFFSET]
-            MOVS    R2,#LCD_GCR_LCDEN_MASK
-            ORRS    R1,R1,R2
-            STR     R1,[R0,#LCD_GCR_OFFSET]
+            LDR     R2,=LCD_GCR_SETUP_2
+            STR     R2,[R0,#LCD_GCR_OFFSET]
             POP     {R0-R2}
 			BX      LR
             ENDP
@@ -259,7 +298,7 @@ DisableLCD  PROC {R0-R14}
 ;  NONE
 ; Modified: APSR
 WriteLCDDec PROC {R1-R14}
-            PUSH    {R0-R4}
+            PUSH    {R0-R4,LR}
             LDR     R2,=LCD_WF
             LDR     R3,=LCD_DecSeg
             MOV     R1,R0
@@ -278,8 +317,7 @@ WriteLCDDec PROC {R1-R14}
             MOVS    R0,#10
             BL      DIVU
             WriteLCDDig R2,R3,R1,R4,LCD_KILO_HI,LCD_KILO_LO
-            POP     {R0-R4}
-			BX      LR
+            POP     {R0-R4,PC}
             ENDP
                 
           
